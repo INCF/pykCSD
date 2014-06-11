@@ -15,6 +15,9 @@ readme = open('README.rst').read()
 history = open('HISTORY.rst').read().replace('.. :changelog:', '')
 
 requirements = [
+    'numpy',
+    'scipy',
+    'scikit-learn'
     # TODO: put package requirements here
 ]
 

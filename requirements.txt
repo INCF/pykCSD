@@ -1,4 +1,4 @@
 wheel==0.23.0
 numpy
-scikit-learn
 scipy
+scikit-learn
