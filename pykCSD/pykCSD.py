@@ -1,17 +1,18 @@
 # -*- coding: utf-8 -*-
+from KCSD1D import KCSD1D
 
-class KCSD:
+class KCSD(object):
     """
     Main class for instantiating a Kernel Current Source Density Solver.
     """
 
-    def __init__(self, electrode_positions, sampled_pots, **kwargs):
+    def __init__(self, elec_pos, sampled_pots, **kwargs):
         """
         Optional parameters: 
         'source_radius' -- radius of a base element,
         'n_sources' -- number of sources,
         'conductance' -- space conductance of the medium,
-        'lambda' -- tikhonov regularization parameter for ridge regression
+        'lambda' -- regularization parameter for ridge regression
         'h',
         'x_min', 
         'x_max',
@@ -20,10 +21,11 @@ class KCSD:
         'z_min',
         'z_max'
         """
-        dim = len(electrode_positions.shape)
+        dim = len(elec_pos.shape)
+        print dim
+
         if dim == 1:
-            pass
-        #   self.solver = KCSD1D()
+            self.solver = KCSD1D(elec_pos, sampled_pots, **kwargs)
         elif dim == 2:
             pass
         #   self.solver = KCSD2D()
@@ -32,20 +34,19 @@ class KCSD:
         #   self.solver = KCSD3D()
         else:
             pass
+        self.solver.calculate_matrices()
 
-    def estimate_potentials(self):
+    def estimate_pots(self):
         """
         Calculates Local Field Potentials using the instantiated solver.
         """
-        #self.solver.estimate_potentials()
-        pass
+        self.solver.estimate_pots()
 
     def estimate_csd(self):
         """
         Calculates Current Source Density using the instantiated solver.
         """
-        #self.solver.estimate_csd()
-        pass
+        self.solver.estimate_csd()
 
     def save(self, filename = 'result'):
         """

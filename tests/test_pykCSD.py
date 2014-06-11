@@ -18,8 +18,11 @@ class TestPykcsd(unittest.TestCase):
     def setUp(self):
         pass
 
-    def test_something(self):
+    def test_KCSD1D_two_electrodes(self):
         pass
+
+    def test_KCSD1D_cross_validation(self):
+    	pass
 
     def tearDown(self):
         pass
