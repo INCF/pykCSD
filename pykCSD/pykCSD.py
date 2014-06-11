@@ -22,7 +22,7 @@ class KCSD(object):
         'z_max'
         """
         dim = len(elec_pos.shape)
-        print dim
+        print "Initializing kCSD %dD" %(dim)
 
         if dim == 1:
             self.solver = KCSD1D(elec_pos, sampled_pots, **kwargs)

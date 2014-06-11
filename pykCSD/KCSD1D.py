@@ -202,7 +202,7 @@ class KCSD1D(object):
     
         for src_ind, current_src in enumerate(self.source_space):
             for arg_ind, arg in enumerate(self.estimation_area):
-                r = abs(current_src - arg);
+                r = abs(current_src - arg)
         
                 #dist_table_ind = uint16(0.85*r*float(dist_dens)/dist_max)   
                 dist_table_ind = uint16(r*float(self.dist_density)/dist_max)
