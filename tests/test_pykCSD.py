@@ -10,7 +10,7 @@ Tests for `pykCSD` module.
 
 import unittest
 
-from pykCSD import pykCSD
+#from pykCSD import pykCSD
 
 
 class TestPykcsd(unittest.TestCase):
@@ -18,7 +18,10 @@ class TestPykcsd(unittest.TestCase):
     def setUp(self):
         pass
 
-    def test_KCSD1D_two_electrodes(self):
+    def test_KCSD1D_pot_estimation_two_electrodes(self):
+        pass
+
+    def test_KCSD1D_csd_estimation_two_electrodes(self):
         pass
 
     def test_KCSD1D_cross_validation(self):

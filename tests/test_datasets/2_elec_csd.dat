@@ -1,0 +1,6 @@
+# CSD obtained from Matlab kCSD1d script with parameters:
+# elec_pos = [ 0.2, 0.7 ]
+# pots = [1.0, ; 0.5, ]
+# k = kCSD1d(elec_pos, pots, 'X', 0:.1:1.0);
+# k.estimate()
+3.9006 5.3247 5.7762 5.07 3.5254 1.6302 -0.1727 -1.5288 -2.2194 -2.1912 -1.634
