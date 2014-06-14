@@ -6,14 +6,14 @@ class KCSD(object):
     Main class for instantiating a Kernel Current Source Density Solver.
     """
 
-    def __init__(self, elec_pos, sampled_pots, **kwargs):
+    def __init__(self, elec_pos, sampled_pots, params=[]):
         """
         Optional parameters: 
         'source_radius' -- radius of a base element,
         'n_sources' -- number of sources,
         'conductance' -- space conductance of the medium,
         'lambda' -- regularization parameter for ridge regression
-        'h',
+        'h' 
         'x_min', 
         'x_max',
         'y_min',
@@ -22,10 +22,10 @@ class KCSD(object):
         'z_max'
         """
         dim = len(elec_pos.shape)
-        print "Initializing kCSD %dD" %(dim)
+        print("Initializing kCSD %dD" %(dim))
 
         if dim == 1:
-            self.solver = KCSD1D(elec_pos, sampled_pots, **kwargs)
+            self.solver = KCSD1D(elec_pos, sampled_pots, params)
         elif dim == 2:
             pass
         #   self.solver = KCSD2D()
