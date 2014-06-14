@@ -10,7 +10,7 @@ virtualenv:
   system_site_packages: true
 
 before_install:
-  - sudo apt-get install build-essential python-dev python-numpy python-setuptools python-scipy libatlas-dev libatlas3-base
+  - sudo apt-get install build-essential python-dev python-numpy python-setuptools python-scipy libatlas-base-dev
   - sudo pip install -U scikit-learn
 
 # command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
