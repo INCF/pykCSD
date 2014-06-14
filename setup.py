@@ -3,7 +3,7 @@
 
 import os
 import sys
-
+import multiprocessing
 
 try:
     from setuptools import setup

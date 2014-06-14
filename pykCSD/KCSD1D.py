@@ -3,7 +3,7 @@ import numpy as np
 from numpy import pi, uint16
 from numpy import dot, transpose, identity
 from sklearn.cross_validation import KFold, LeaveOneOut, ShuffleSplit
-from pylab import *
+#from pylab import *
 
 class KCSD1D(object):
     """
@@ -28,7 +28,7 @@ class KCSD1D(object):
         """
         if len(elec_pos) != len(sampled_pots):
             raise Exception("Number of measured potentials is not equal to electrode number!")
-        if elec_pos < 2:
+        if len(elec_pos) < 2:
             raise Exception("Number of electrodes must be at least 2!")
 
         self.elec_pos = elec_pos
@@ -43,19 +43,19 @@ class KCSD1D(object):
         if 'n_sources' in params.keys():
             self.n_sources = params['n_sources']
         else:
-            self.n_sources = 200
+            self.n_sources = 300
         if 'x_max' in params.keys():
             self.xmax = params['x_max']
         else:
-            self.xmax = 1.0
+            self.xmax = max(self.elec_pos)
         if 'x_min' in params.keys():
             self.xmin = params['x_min']
         else:
-            self.xmin = 0.0
+            self.xmin = min(self.elec_pos)
         if 'dist_density' in params.keys():
             self.dist_density = params['dist_density']
         else:
-            self.dist_density = 300
+            self.dist_density = 200
         if 'lambda' in params.keys():
             self.lambd = params['lambda']
         else:
@@ -71,10 +71,14 @@ class KCSD1D(object):
         if 'R' in params.keys():
             self.R = params['R']
         else:
-            self.R = 0.2*(self.elec_pos[1] - self.elec_pos[0])
+            self.R = 1.0
 
-        self.__source_space = np.linspace(min(self.elec_pos), max(self.elec_pos), self.n_sources)
-        self.__estimation_area = np.linspace(self.xmin, self.xmax, self.n_sources)
+        self.lambdas = np.array([1.0 / 2**n for n in xrange(0,20)])
+        #previous version
+        #self.source_positions = np.linspace(min(self.elec_pos), max(self.elec_pos), self.n_sources)
+        self.source_positions = np.linspace(self.xmin, self.xmax, self.n_sources)
+        self.estimation_area = np.linspace(self.xmin, self.xmax, self.dist_density)
+        #self.estimation_area = np.linspace(self.xmin, self.xmax, self.n_sources)
         self.dist_max = self.xmax - self.xmin
 
     def estimate_pots(self):
@@ -115,10 +119,10 @@ class KCSD1D(object):
         ax11.scatter(self.elec_pos, self.sampled_pots)
         ax11.set_title('Measured potentials')
 
-        ax21.plot(self.__estimation_area, self.estimated_pots)
+        ax21.plot(self.estimation_area, self.estimated_pots)
         ax21.set_title('Calculated potentials')
 
-        ax22.plot(self.__estimation_area, self.estimated_csd)
+        ax22.plot(self.estimation_area, self.estimated_csd)
         ax22.set_title('Calculated CSD')
         show()
     #
@@ -139,7 +143,7 @@ class KCSD1D(object):
 
         self.calculate_b_interp_pot_matrix()
         self.interp_pot = dot(transpose(self.b_interp_pot_matrix), self.b_pot_matrix)
-        self.__lambdas = np.array([10./j**2 for j in xrange(1,50) ])
+        self.lambdas = np.array([10./j**2 for j in xrange(1,50) ])
 
 
     @staticmethod
@@ -191,7 +195,7 @@ class KCSD1D(object):
         self.dist_table = np.zeros(self.dist_density+1)
 
         for i in xrange(0, self.dist_density+1):
-            self.dist_table[i] = KCSD1D.b_pot_quad(0,(float(i)/self.dist_density) * self.dist_max, 
+            self.dist_table[i] = KCSD1D.b_pot_quad(0, (float(i)/self.dist_density) * self.dist_max, 
                                             self.h, self.R, self.sigma, self.source_type)
         #return dist_table
 
@@ -205,14 +209,14 @@ class KCSD1D(object):
     
         self.b_pot_matrix = np.zeros((self.n_sources, n_elec))
     
-        for src_ind, current_src in enumerate(self.__source_space):
-            for arg_ind, arg in enumerate(self.elec_pos):
-                r = abs(current_src - arg)
+        for src_ind, src_pos in enumerate(self.source_positions):
+            for elec_ind, elec_pos in enumerate(self.elec_pos):
+                r = abs(src_pos - elec_pos)
             
                 #dist_table_ind = uint16(0.85 * r * float(dist_dens)/max_dist)
                 dist_table_ind = uint16(r * float(self.dist_density)/self.dist_max)
                 #print dist_table_ind
-                self.b_pot_matrix[src_ind, arg_ind] = self.dist_table[dist_table_ind]   
+                self.b_pot_matrix[src_ind, elec_ind] = self.dist_table[dist_table_ind]   
         #return b_pot_matrix
   
 
@@ -220,12 +224,12 @@ class KCSD1D(object):
         """
         Compute the matrix of basis sources.
         """
-        n_gx = len(self.__estimation_area)
+        n_gx = len(self.estimation_area)
 
         self.b_src_matrix = np.zeros((n_gx, self.n_sources))
 
-        for src_ind, curr_src in enumerate(self.__source_space):
-            self.b_src_matrix[:, src_ind] = KCSD1D.gauss_rescale(self.__estimation_area, curr_src, self.h)
+        for src_ind, curr_src in enumerate(self.source_positions):
+            self.b_src_matrix[:, src_ind] = KCSD1D.gauss_rescale(self.estimation_area, curr_src, self.h)
 
         #return b_src_matrix
     
@@ -235,13 +239,13 @@ class KCSD1D(object):
         Compute the matrix of potentials generated by every source basis function
         at every position in the interpolated space.
         """
-        n_points = len(self.__estimation_area)
-        dist_max = max(self.__estimation_area) - min(self.__estimation_area)
+        n_points = len(self.estimation_area)
+        dist_max = max(self.estimation_area) - min(self.estimation_area)
 
         self.b_interp_pot_matrix = np.zeros((self.n_sources, n_points))
     
-        for src_ind, current_src in enumerate(self.__source_space):
-            for arg_ind, arg in enumerate(self.__estimation_area):
+        for src_ind, current_src in enumerate(self.source_positions):
+            for arg_ind, arg in enumerate(self.estimation_area):
                 r = abs(current_src - arg)
         
                 #dist_table_ind = uint16(0.85*r*float(dist_dens)/dist_max)   
@@ -285,18 +289,18 @@ class KCSD1D(object):
         #print "l=", lambd, ", err=", error
         return error
 
-    def choose_lambda(self, __lambdas, n_folds=1, n_iter=1):
+    def choose_lambda(self, lambdas, n_folds=1, n_iter=1):
         """
         Finds the optimal regularization parameter lambda for Tikhonov regularization by cross validation.
         """
-        n = len(__lambdas)
+        n = len(lambdas)
         errors = np.zeros(n)
         errors_iter = np.zeros(n_iter)
-        for i, lambd in enumerate(__lambdas):
+        for i, lambd in enumerate(lambdas):
             for j in xrange(n_iter):
                 errors_iter[j] = self.cross_validation(lambd, self.sampled_pots, self.k_pot, n_folds)
             errors[i] = np.mean(errors_iter)
-        return __lambdas[errors == min(errors)][0]
+        return lambdas[errors == min(errors)][0]
 
 
 if __name__ == '__main__':
@@ -306,7 +310,7 @@ if __name__ == '__main__':
         
     k = KCSD1D(elec_pos, pots)
     k.calculate_matrices()
-    print "lambda=", k.choose_lambda(k.__lambdas)
+    print "lambda=", k.choose_lambda(k.lambdas)
     k.estimate_pots()
     k.estimate_csd()
     k.plot_all()
