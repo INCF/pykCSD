@@ -3,7 +3,7 @@ import numpy as np
 from numpy import pi, uint16
 from numpy import dot, transpose, identity
 from sklearn.cross_validation import KFold, LeaveOneOut, ShuffleSplit
-#from pylab import *
+from matplotlib import pylab as plt
 
 class KCSD1D(object):
     """
@@ -26,15 +26,22 @@ class KCSD1D(object):
             'cross_validation' -- type of index generator 
             'lambda' -- regularization parameter for ridge regression
         """
-        if len(elec_pos) != len(sampled_pots):
-            raise Exception("Number of measured potentials is not equal to electrode number!")
-        if len(elec_pos) < 2:
-            raise Exception("Number of electrodes must be at least 2!")
-
+        self.validate_parameters(elec_pos, sampled_pots)
         self.elec_pos = elec_pos
         self.sampled_pots = sampled_pots
         self.set_parameters(params)
  
+    def validate_parameters(self, elec_pos, sampled_pots):
+        if len(elec_pos) != len(sampled_pots):
+            raise Exception("Number of measured potentials is not equal to electrode number!")
+        if len(elec_pos) < 2:
+            raise Exception("Number of electrodes must be at least 2!")
+        
+        elec_set = set(elec_pos)
+        if len(elec_pos) != len(elec_set):
+            raise Exception("Error! Duplicate electrode!")
+
+
     def set_parameters(self, params):
         if 'sigma' in params.keys():
             self.sigma = params['sigma']
@@ -74,11 +81,8 @@ class KCSD1D(object):
             self.R = 1.0
 
         self.lambdas = np.array([1.0 / 2**n for n in xrange(0,20)])
-        #previous version
-        #self.source_positions = np.linspace(min(self.elec_pos), max(self.elec_pos), self.n_sources)
         self.source_positions = np.linspace(self.xmin, self.xmax, self.n_sources)
         self.estimation_area = np.linspace(self.xmin, self.xmax, self.dist_density)
-        #self.estimation_area = np.linspace(self.xmin, self.xmax, self.n_sources)
         self.dist_max = self.xmax - self.xmin
 
     def estimate_pots(self):
@@ -124,7 +128,7 @@ class KCSD1D(object):
 
         ax22.plot(self.estimation_area, self.estimated_csd)
         ax22.set_title('Calculated CSD')
-        show()
+        plt.show()
     #
     # subfunctions
     #
@@ -149,7 +153,7 @@ class KCSD1D(object):
     @staticmethod
     def pot_intarg(src, arg, current_pos, h, R, sigma, src_type):
         """
-
+        returns contribution of a single source as a function of distance
         """
         if src_type == "gaussian":
             y = (1./(2*sigma))*(np.sqrt((arg-current_pos)**2 + R**2) - abs(arg - current_pos)) * KCSD1D.gauss_rescale(src, current_pos, h)
@@ -305,10 +309,11 @@ class KCSD1D(object):
 
 if __name__ == '__main__':
     """Example"""
-    elec_pos = np.array([0.1, 0.7])
-    pots = 0.8 * np.exp(-(elec_pos - 0.1)**2) - 0.8 * np.exp(-(elec_pos - 0.7)**2)
-        
-    k = KCSD1D(elec_pos, pots)
+    elec_pos = np.array([0.0, 0.1, 0.4, 0.7, 0.8, 1.0, 1.2, 1.7])
+    pots = 0.8 * np.exp(-(elec_pos - 0.1)**2/0.2) + 0.8 * np.exp(-(elec_pos - 0.7)**2/0.1)
+    params = {'x_min': -1.0, 'x_max': 2.5, 'R': 1.0}       
+    
+    k = KCSD1D(elec_pos, pots, params=params)
     k.calculate_matrices()
     print "lambda=", k.choose_lambda(k.lambdas)
     k.estimate_pots()
