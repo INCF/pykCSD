@@ -20,4 +20,5 @@ Kernel Current Source Density is a recently developed method for estimating the 
 Features
 --------
 
-* TODO
+* Estimation of potentials and CSD in 1D case
+* TODO: estimation of potentials and CSD in 2D, 3D case
