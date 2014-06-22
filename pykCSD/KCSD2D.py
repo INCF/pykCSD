@@ -6,10 +6,10 @@ from sklearn.cross_validation import KFold, LeaveOneOut, ShuffleSplit
 from matplotlib import pylab as plt
 
 
-class KCSD1D(object):
+class KCSD2D(object):
     """
-    1D variant of the kCSD method.
-    It assumes constant distribution of sources in a cylinder around the electrodes.
+    2D variant of the kCSD method.
+    It assumes constant distribution of sources in a slice around the estimation area.
     """
 
     def __init__(self, elec_pos, sampled_pots, params={}):
@@ -36,29 +36,52 @@ class KCSD1D(object):
     def validate_parameters(self, elec_pos, sampled_pots):
         if len(elec_pos) != len(sampled_pots):
             raise Exception("Number of measured potentials is not equal to electrode number!")
-        if len(elec_pos) < 2:
-            raise Exception("Number of electrodes must be at least 2!")
+        if len(elec_pos) < 3:
+            raise Exception("Number of electrodes must be at least 3!")
         elec_set = set(elec_pos)
         if len(elec_pos) != len(elec_set):
             raise Exception("Error! Duplicate electrode!")
 
     def set_parameters(self, params):
-        self.sigma = params.get('sigma', 1.0)
-        self.n_sources = params.get('n_sources', 300)
-        self.xmax = params.get('x_max', max(self.elec_pos) )
-        self.xmin = params.get('x_min', min(self.elec_pos))
-        self.dist_density = params.get('dist_density', 200)
-        self.lambd = params.get('lambda', 0.0)
-        self.R = params.get('R', 1.0)
-        self.h = params.get('h', abs(self.elec_pos[1] - self.elec_pos[0]))
-
-        if 'source_type' in params:
+        if 'sigma' in params.keys():
+            self.sigma = params.get('sigma', 1.0)
+        else:
+            self.sigma = 1.0 
+        if 'n_sources' in params.keys():
+            self.n_sources = params['n_sources']
+        else:
+            self.n_sources = 400
+        if 'x_max' in params.keys():
+            self.xmax = params['x_max']
+        else:
+            self.xmax = max(self.elec_pos)
+        if 'x_min' in params.keys():
+            self.xmin = params['x_min']
+        else:
+            self.xmin = min(self.elec_pos)
+        if 'dist_density' in params.keys():
+            self.dist_density = params['dist_density']
+        else:
+            self.dist_density = 200
+        if 'lambda' in params.keys():
+            self.lambd = params['lambda']
+        else:
+            self.lambd = 0.0
+        if 'source_type' in params.keys():
             if params['source_type'] in ["gaussian", "step"]:
                 self.source_type = params['source_type']
             else:
                 raise Exception("Incorrect source type!")
         else:    
             self.source_type = "gaussian"
+        if 'h' in params.keys():
+            self.h = params['h']
+        else:
+            self.h = abs(self.elec_pos[1] - self.elec_pos[0])
+        if 'R' in params.keys():
+            self.R = params['R']
+        else:
+            self.R = 1.0
 
         self.lambdas = np.array([1.0 / 2**n for n in xrange(0, 20)])
         self.source_positions = np.linspace(self.xmin, self.xmax, self.n_sources)
@@ -97,17 +120,7 @@ class KCSD1D(object):
         return info
 
     def plot_all(self):
-        fig, (ax11, ax21, ax22) = plt.subplots(1, 3, sharex=True)
-        
-        ax11.scatter(self.elec_pos, self.sampled_pots)
-        ax11.set_title('Measured potentials')
-
-        ax21.plot(self.estimation_area, self.estimated_pots)
-        ax21.set_title('Calculated potentials')
-
-        ax22.plot(self.estimation_area, self.estimated_csd)
-        ax22.set_title('Calculated CSD')
-        plt.show()
+        pass
 
     #
     # subfunctions
@@ -134,14 +147,7 @@ class KCSD1D(object):
         """
         Returns contribution of a single source as a function of distance
         """
-        y = (1./(2 * sigma)) * (np.sqrt((arg - current_pos)**2 + R**2) - abs(arg - current_pos))
-        if src_type == "gaussian":
-            # for this formula look at formula (8) from Pettersen et al., 2006
-            y *= KCSD1D.gauss_rescale(src, current_pos, h)
-        if src_type == "step":
-            #TODO check/re-evaluate
-            y *= KCSD1D.step_rescale(src, current_pos, h)  
-        return y
+        pass
 
     @staticmethod
     def gauss_rescale(x, mu, three_stdev):
@@ -151,95 +157,49 @@ class KCSD1D(object):
         mu -- center of the distribution, 
         three_stdev -- cut off distance from the center
         """
-        variance = (three_stdev/3.0)**2
-        g = 1./np.sqrt(2. * pi * variance) * np.exp(-(1./(2.*variance)) * (x-mu)**2) * (abs(x - mu) < three_stdev)
-        return g
+        pass
 
     @staticmethod
     def step_rescale(x, x0, width):
         """
         Returns normalized step function
         """
-        s = 1.0/width * (abs(x - x0) < width)
-        return s
+        pass
 
     @staticmethod
     def b_pot_quad(src, arg, h, R, sigma, src_type):
         """
         Returns potential as a function of distance from the source.
         """
-        x = np.linspace(src - 4*h, src + 4*h, 51)  # manipulate the resolution, 
-        # TODO: smarter choice of integration resolution
-        pot = np.array([KCSD1D.pot_intarg(src, arg, current_pos, h, R, sigma, src_type) for current_pos in x])
-        #plot(x, pot)
-        z = np.trapz(pot, x)
-
-        return z
+        pass
 
     def create_dist_table(self):
         """
         Create table of a single source contribution to overall potential 
         as a function of distance.
         """
-        self.dist_table = np.zeros(self.dist_density + 1)
-
-        for i in xrange(0, self.dist_density + 1):
-            arg = (float(i)/self.dist_density) * self.dist_max
-            self.dist_table[i] = KCSD1D.b_pot_quad(0, arg, self.h, self.R,
-                                                   self.sigma, self.source_type)
-        #return dist_table
+        pass
 
     def calculate_b_pot_matrix(self):
         """ 
         Compute the matrix of potentials generated by every source basis function
         at every electrode position. 
         """
-        n_elec = len(self.elec_pos)
-    
-        self.b_pot_matrix = np.zeros((self.n_sources, n_elec))
-    
-        for src_ind, src_pos in enumerate(self.source_positions):
-            for elec_ind, elec_pos in enumerate(self.elec_pos):
-                r = abs(src_pos - elec_pos)
-            
-                dist_table_ind = uint16(r * float(self.dist_density)/self.dist_max)
-                #print dist_table_ind
-                self.b_pot_matrix[src_ind, elec_ind] = self.dist_table[dist_table_ind]   
-        #return b_pot_matrix
+        pass
   
 
     def calculate_b_src_matrix(self):
         """
         Compute the matrix of basis sources.
         """
-        n_gx = len(self.estimation_area)
-
-        self.b_src_matrix = np.zeros((n_gx, self.n_sources))
-
-        for src_ind, curr_src in enumerate(self.source_positions):
-            if self.source_type == "gaussian":
-                self.b_src_matrix[:, src_ind] = KCSD1D.gauss_rescale(self.estimation_area, curr_src, self.h)
-            elif self.source_type == "step":
-                self.b_src_matrix[:, src_ind] = KCSD1D.step_rescale(self.estimation_area, curr_src, self.h)
-        #return b_src_matrix    
+        pass
 
     def calculate_b_interp_pot_matrix(self):
         """
         Compute the matrix of potentials generated by every source basis function
         at every position in the interpolated space.
         """
-        n_points = len(self.estimation_area)
-        dist_max = max(self.estimation_area) - min(self.estimation_area)
-
-        self.b_interp_pot_matrix = np.zeros((self.n_sources, n_points))
-    
-        for src_ind, current_src in enumerate(self.source_positions):
-            for arg_ind, arg in enumerate(self.estimation_area):
-                r = abs(current_src - arg)
-        
-                dist_table_ind = uint16(r * float(self.dist_density)/dist_max)
-                self.b_interp_pot_matrix[src_ind, arg_ind] = self.dist_table[dist_table_ind]
-        #return b_interp_pot_matrix
+        pass
 
     def calc_CV_error(self, lambd, pot, k_pot, ind_test, ind_train):
         k_train = k_pot[ind_train, ind_train]
