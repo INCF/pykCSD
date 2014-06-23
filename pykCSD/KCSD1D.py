@@ -127,10 +127,9 @@ class KCSD1D(object):
 
         self.calculate_b_interp_pot_matrix()
         self.interp_pot = dot(transpose(self.b_interp_pot_matrix), self.b_pot_matrix)
-        self.lambdas = np.array([10./j**2 for j in xrange(1, 50)])
 
     @staticmethod
-    def pot_intarg(src, arg, current_pos, h, R, sigma, src_type):
+    def int_pot(src, arg, current_pos, h, R, sigma, src_type):
         """
         Returns contribution of a single source as a function of distance
         """
@@ -170,7 +169,7 @@ class KCSD1D(object):
         """
         x = np.linspace(src - 4*h, src + 4*h, 51)  # manipulate the resolution, 
         # TODO: smarter choice of integration resolution
-        pot = np.array([KCSD1D.pot_intarg(src, arg, current_pos, h, R, sigma, src_type) for current_pos in x])
+        pot = np.array([KCSD1D.int_pot(src, arg, current_pos, h, R, sigma, src_type) for current_pos in x])
         #plot(x, pot)
         z = np.trapz(pot, x)
 
