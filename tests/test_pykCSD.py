@@ -14,6 +14,7 @@ import numpy as np
 # from pylab import *
 from numpy.linalg import norm
 from pykCSD.pykCSD import KCSD1D
+from pykCSD.pykCSD import KCSD2D
 
 
 class TestKCSD1D(unittest.TestCase):
@@ -21,8 +22,8 @@ class TestKCSD1D(unittest.TestCase):
     def setUp(self):
         pass
 
-    def test_KCSD1D_pot_intarg(self):
-        """results of pot_intarg function should be almost equal to kCSD1d (matlab) results"""
+    def test_KCSD1D_int_pot(self):
+        """results of int_pot function should be almost equal to kCSD1d (matlab) results"""
 
         expected_results = np.loadtxt('tests/test_datasets/KCSD1D/expected_pot_intargs.dat', delimiter=',')
         params = np.loadtxt('tests/test_datasets/KCSD1D/intarg_parameters.dat', delimiter=',')
@@ -34,7 +35,7 @@ class TestKCSD1D(unittest.TestCase):
         sigmas = params[5]
 
         for i, expected_result in enumerate(expected_results):
-            kcsd_result = KCSD1D.pot_intarg(src=srcs[i], arg=args[i], current_pos=curr_pos[i],
+            kcsd_result = KCSD1D.int_pot(src=srcs[i], arg=args[i], current_pos=curr_pos[i],
                                             h=hs[i], R=Rs[i], sigma=sigmas[i], src_type='gaussian')
             self.assertAlmostEqual(expected_result, kcsd_result, places=3)
 
@@ -48,10 +49,7 @@ class TestKCSD1D(unittest.TestCase):
         k.calculate_matrices()
         k.estimate_pots()
         reference_pots = np.loadtxt('tests/test_datasets/KCSD1D/2_elec_pot.dat', skiprows=5)
-        """figure()
-        plot(k.estimated_pots)
-        plot(reference_pots)
-        show()"""
+
         for i, expected_pot in enumerate(reference_pots):
             self.assertAlmostEqual(k.estimated_pots[i], expected_pot, places=1)
 
@@ -116,6 +114,7 @@ class TestKCSD1D(unittest.TestCase):
 
     def test_KCSD1D_time_frames(self):
         """given array of dimension (pots, time) it should calculate pots and csd for every time frame"""
+        #missing functionality
         pass
 
     def tearDown(self):
@@ -176,13 +175,28 @@ class testKCSD1D_full_reconstruction(unittest.TestCase):
         self.assertLess(k.lambd, 1.0)
 
 
+
+
+
 class TestKCSD2D(unittest.TestCase):
 
     def setUp(self):
         pass
 
-    def test_KCSD2D_pot_intarg(self):
-        pass
+    def test_KCSD2D_int_pot(self):
+        """results of int_pot function should be almost equal to kCSD2D (matlab) results"""
+
+        expected_results = np.loadtxt('tests/test_datasets/KCSD2D/expected_pot_intargs_2D.dat', delimiter=',')
+        params = np.loadtxt('tests/test_datasets/KCSD2D/intarg_parameters_2D.dat', delimiter=',')
+        xps = params[0]
+        yps = params[1]
+        xs = params[2]
+        Rs = params[3]
+        hs = params[4]
+        for i, expected_result in enumerate(expected_results):
+            kcsd_result = KCSD2D.int_pot(xp=xps[i], yp=yps[i], x=xs[i],
+                                         R=Rs[i], h=hs[i], src_type='gaussian')
+            self.assertAlmostEqual(expected_result, kcsd_result, places=3)
 
     def test_KCSD2D_pot_estimation_three_electrodes(self):
         pass

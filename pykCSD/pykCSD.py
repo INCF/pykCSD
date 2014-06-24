@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from KCSD1D import KCSD1D
+from KCSD2D import KCSD2D
 
 
 class KCSD(object):
@@ -28,8 +29,7 @@ class KCSD(object):
         if dim == 1:
             self.solver = KCSD1D(elec_pos, sampled_pots, params)
         elif dim == 2:
-            pass
-        #   self.solver = KCSD2D()
+           self.solver = KCSD2D(elec_pos, sampled_pots, params)
         elif dim == 3:
             pass
         #   self.solver = KCSD3D()
