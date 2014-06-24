@@ -28,7 +28,7 @@ class KCSD2D(object):
             'h' -- thickness of the basis element
             'R' -- cylinder radius
             'dist_density' -- resolution of the output
-            'x_min', 'x_max' -- boundaries for CSD estimation space
+            'x_min', 'x_max', 'y_min', 'y_max' -- boundaries for CSD estimation space
             'cross_validation' -- type of index generator 
             'lambda' -- regularization parameter for ridge regression
         """
@@ -89,10 +89,14 @@ class KCSD2D(object):
     
         k_inv = np.linalg.inv(self.k_pot + self.lambd * identity(self.k_pot.shape[0]))
         beta = dot(k_inv, self.sampled_pots)
-        self.estimated_pots = dot(estimation_table, beta)
 
-        nx, ny = self.space_X.shape
-        self.estimated_pots = self.estimated_pots.reshape(nx, ny)
+        nx,ny = self.space_X.shape
+        output = np.zeros(nx*ny)
+
+        for i in xrange(self.elec_pos.shape[0]):
+            output[:] += beta[i]*estimation_table[:,i]
+
+        self.estimated_pots = output.reshape(nx, ny)
         return self.estimated_pots
 
     def estimate_csd(self):
@@ -101,8 +105,14 @@ class KCSD2D(object):
 
         k_inv = np.linalg.inv(self.k_pot + self.lambd * identity(self.k_pot.shape[0]))
         beta = dot(k_inv, self.sampled_pots)
-        self.estimated_csd = dot(estimation_table, beta)
+        
+        nx,ny = self.space_X.shape
+        output = np.zeros(nx*ny)
 
+        for i in xrange(self.elec_pos.shape[0]):
+            output[:] += beta[i]*estimation_table[:,i]
+
+        self.estimated_csd = output.reshape(nx, ny)
         return self.estimated_csd
 
     def save(self, filename='result'):
@@ -117,7 +127,17 @@ class KCSD2D(object):
         return info
 
     def plot_all(self):
-        pass
+        fig, (ax11, ax21, ax22) = plt.subplots(1, 3, sharex=True)
+        
+        ax11.scatter(self.elec_pos, self.sampled_pots)
+        ax11.set_title('Measured potentials')
+
+        ax21.plot(self.estimation_area, self.estimated_pots)
+        ax21.set_title('Calculated potentials')
+
+        ax22.plot(self.estimation_area, self.estimated_csd)
+        ax22.set_title('Calculated CSD')
+        plt.show()
 
     #
     # subfunctions
@@ -136,7 +156,7 @@ class KCSD2D(object):
         self.k_interp_cross = np.dot(self.b_src_matrix, self.b_pot_matrix)
         
         self.calculate_b_interp_pot_matrix()
-        self.interp_pot = dot(transpose(self.b_interp_pot_matrix), self.b_pot_matrix)
+        self.interp_pot = dot(self.b_interp_pot_matrix, self.b_pot_matrix)
         
 
     @staticmethod
@@ -393,22 +413,22 @@ class KCSD2D(object):
         ng = ngx * ngy
 
         self.b_src_matrix = np.zeros((self.space_X.shape[0], self.space_X.shape[1], n))
-
     
         for i in xrange(n): 
             #getting the coordinates of the i-th source
-            [i_x, i_y] = np.unravel_index(i, (nsx,nsy))
+            [i_x, i_y] = np.unravel_index(i, (nsx,nsy), order='F')
             y_src = self.Y_src[i_x, i_y]
             x_src = self.X_src[i_x, i_y]
         
             if self.source_type == 'step':
-                self.b_src_matrix[:,:,i]= ( (self.X-x_src)**2 + (self.Y-y_src)**2 <= R2)
+                self.b_src_matrix[:,:,i]= ( (self.space_X-x_src)**2 + (self.space_Y-y_src)**2 <= R2)
             elif self.source_type == 'gaussian':
                 self.b_src_matrix[:,:,i] = KCSD2D.gauss_rescale_2D(self.space_X, self.space_Y, [x_src,y_src], self.R)
             elif self.source_type == 'gauss_lim':
                 self.b_src_matrix[:,:,i] = gauss_rescale_lim(self.space_X, self.space_Y, [x_src,y_src], self.R)            
-        
+
         self.b_src_matrix = self.b_src_matrix.reshape(ng,n)
+
 
     def calculate_b_interp_pot_matrix(self):
         """
@@ -445,12 +465,11 @@ class KCSD2D(object):
         [nsx, nsy] = self.X_src.shape
         n_src = nsy * nsx  #(total number of sources)
 
-        #b_interp_pot_matrix = np.zeros(( (X.shape)[0], (X.shape)[1], n_src))
         self.b_interp_pot_matrix = np.zeros((self.space_X.shape[0], self.space_X.shape[1], n_src))
     
         for src in xrange(0, n_src): 
             #getting the coordinates of the i-th source
-            i_x, i_y = np.unravel_index(src, (nsx,nsy))
+            i_x, i_y = np.unravel_index(src, (nsx,nsy), order='F')
             y_src = self.Y_src[i_x, i_y]
             x_src = self.X_src[i_x, i_y]       
         
@@ -461,8 +480,8 @@ class KCSD2D(object):
         print self.b_interp_pot_matrix.shape
         print ng, n_src
    
-        #self.b_interp_pot_matrix = self.b_interp_pot_matrix.reshape((ng, n_src))
-        self.b_interp_pot_matrix = self.b_interp_pot_matrix.reshape(n_src, ng)
+        self.b_interp_pot_matrix = self.b_interp_pot_matrix.reshape(ng, n_src)
+
 
     def calc_CV_error(self, lambd, pot, k_pot, ind_test, ind_train):
         k_train = k_pot[ind_train, ind_train]
@@ -517,4 +536,7 @@ if __name__ == '__main__':
     elec_pos = np.array([[0,0], [0,1], [1,1]])
     pots = np.array([0,1,2])
     k = KCSD2D(elec_pos, pots)
-    k.create_dist_table()
+    k.calculate_matrices()
+    k.estimate_pots()
+    k.estimate_csd()
+    k.plot_all()
