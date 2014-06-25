@@ -181,7 +181,10 @@ class testKCSD1D_full_reconstruction(unittest.TestCase):
 class TestKCSD2D(unittest.TestCase):
 
     def setUp(self):
-        pass
+        elec_pos = np.array([[0, 0], [0,1], [1,1]])
+        pots = np.array([0, 0, 1.0])
+        #self.k = KCSD2D(elec_pos, pots)
+        #self.k.calculate_matrices()
 
     def test_KCSD2D_int_pot(self):
         """results of int_pot function should be almost equal to kCSD2D (matlab) results"""
@@ -198,6 +201,12 @@ class TestKCSD2D(unittest.TestCase):
                                          R=Rs[i], h=hs[i], src_type='gaussian')
             self.assertAlmostEqual(expected_result, kcsd_result, places=3)
 
+    def test_KCSD2D_k_pot_three_electrodes(self):
+        pass
+
+    def test_KCSD2D_b_src_matrix_three_electrodes(self):
+        pass
+
     def test_KCSD2D_pot_estimation_three_electrodes(self):
         pass
 
@@ -208,7 +217,22 @@ class TestKCSD2D(unittest.TestCase):
         pass
 
     def test_KCSD2D_zero_pot(self):
-        pass
+        elec_pos = np.array([[0,0],[0,1],[1,0],[1,1]])
+        pots = np.array([0,0,0,0])
+        k = KCSD2D(elec_pos, pots)
+        k.calculate_matrices()
+        k.estimate_pots()
+        for pot in k.estimated_pots.flatten():
+            self.assertAlmostEqual(pot, 0.0, places=5)
+
+    def test_KCSD2D_zero_csd(self):
+        elec_pos = np.array([[0,0],[0,1],[1,0],[1,1]])
+        pots = np.array([0,0,0,0])
+        k = KCSD2D(elec_pos, pots)
+        k.calculate_matrices()
+        k.estimate_csd()
+        for csd in k.estimated_csd.flatten():
+            self.assertAlmostEqual(csd, 0.0, places=5)
 
     def tearDown(self):
         pass

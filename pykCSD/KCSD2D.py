@@ -127,16 +127,21 @@ class KCSD2D(object):
         return info
 
     def plot_all(self):
-        fig, (ax11, ax21, ax22) = plt.subplots(1, 3, sharex=True)
+        fig, (ax11, ax21, ax22) = plt.subplots(1, 3)
         
-        ax11.scatter(self.elec_pos, self.sampled_pots)
+        #ax11.scatter(self.elec_pos, self.sampled_pots)
         ax11.set_title('Measured potentials')
 
-        ax21.plot(self.estimation_area, self.estimated_pots)
+        ax21.imshow(self.estimated_pots, interpolation='none', 
+                    extent=[self.xmin, self.xmax, self.ymin, self.ymax])
         ax21.set_title('Calculated potentials')
+        ax21.autoscale_view(True,True,True)
 
-        ax22.plot(self.estimation_area, self.estimated_csd)
+        ax22.imshow(self.estimated_csd, interpolation='none',
+                    extent=[self.xmin, self.xmax, self.ymin, self.ymax])
         ax22.set_title('Calculated CSD')
+        ax22.autoscale_view(True,True,True)
+        
         plt.show()
 
     #
@@ -163,8 +168,8 @@ class KCSD2D(object):
     def calc_min_dist(elec_pos):
         n = elec_pos.shape[0]
         min_dist = norm(elec_pos[0, :] - elec_pos[1, :])
-        for i in xrange(0,n):
-            for j in xrange(0,n):
+        for i in xrange(0, n):
+            for j in xrange(0, n):
                 dist = norm(elec_pos[i, :] - elec_pos[j, :])
                 if dist < min_dist and i!=j:
                     min_dist = norm(elec_pos[i, :] - elec_pos[j, :])
@@ -296,7 +301,7 @@ class KCSD2D(object):
         by a basis source located at (0,0)
         """
         pot, err = integrate.dblquad(KCSD2D.int_pot, -R, R, lambda x:-R, lambda x:R, args=(x,R,h,src_type), epsrel=1e0, epsabs=1e0)
-        print err
+        #print err
         pot = 1./(2.0*pi*sigma)*pot
         return pot
 
@@ -324,7 +329,7 @@ class KCSD2D(object):
         xs = np.append( xs, self.dist_density+1)
     
         xs = np.unique(np.array(xs))
-        print 'xs: ', xs
+        #print 'xs: ', xs
 
         dist_table = np.zeros(len(xs))
 
@@ -332,12 +337,12 @@ class KCSD2D(object):
             dist_table[i] = KCSD2D.b_pot_2d_cont(((xs[i]-1)/self.dist_density) * self.dist_max,
                                                 self.R, self.h, self.sigma, self.source_type)
     
-        print "dt: ", dist_table
+        #print "dt: ", dist_table
 
         inter = interp1d(x=xs-1, y=dist_table, kind='cubic', fill_value=0.0)
         dt_int = np.array([inter(xx) for xx in xrange(self.dist_density) ])
         dt_int.flatten()
-        print dt_int
+        #print dt_int
         self.dist_table = dt_int.copy()
         #return dt_int
 
@@ -473,7 +478,6 @@ class KCSD2D(object):
             y_src = self.Y_src[i_x, i_y]
             x_src = self.X_src[i_x, i_y]       
         
-            #b_interp_pot_matrix[:, :, src] = generated_potential(X, Y, x_src, y_src, dist_table, dist_max, dt_len)
             self.b_interp_pot_matrix[:, :, src] = self.generated_potential(x_src, y_src, dist_max, dt_len)
     
         #print b_interp_pot_matrix
