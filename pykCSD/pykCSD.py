@@ -34,7 +34,7 @@ class KCSD(object):
             pass
         #   self.solver = KCSD3D()
         else:
-            pass
+            raise Exception("Incorrect electrode format.")
         self.solver.calculate_matrices()
 
     def estimate_pots(self):
@@ -54,6 +54,9 @@ class KCSD(object):
         Save results to file.
         """
         pass
+
+    def plot_all(self):
+        self.solver.plot_all()
 
 if __name__ == '__main__':
     pass

@@ -27,7 +27,6 @@ class KCSD2D(object):
             'source_type' -- basis function type ('gaussian', 'step')
             'h' -- thickness of the basis element
             'R' -- cylinder radius
-            '__dist_density' -- resolution of the output
             'x_min', 'x_max', 'y_min', 'y_max' -- boundaries for CSD estimation space
             'cross_validation' -- type of index generator 
             'lambda' -- regularization parameter for ridge regression
@@ -61,7 +60,7 @@ class KCSD2D(object):
 
         self.gdX = params.get('gdX', 0.01*(self.xmax - self.xmin))
         self.gdY = params.get('gdY', 0.01*(self.ymax - self.ymin))
-        self.__dist_density = 100
+        self.__dist_table_density = 100
 
         if 'source_type' in params:
             if params['source_type'] in ["gaussian", "step"]:
@@ -73,8 +72,8 @@ class KCSD2D(object):
 
         self.lambdas = np.array([1.0 / 2**n for n in xrange(0, 20)])
 
-        lin_x = np.linspace(self.xmin, self.xmax, (self.xmax - self.xmin)/self.gdX)
-        lin_y = np.linspace(self.ymin, self.ymax, (self.ymax - self.ymin)/self.gdY)
+        lin_x = np.linspace(self.xmin, self.xmax, (self.xmax - self.xmin)/self.gdX +1 )
+        lin_y = np.linspace(self.ymin, self.ymax, (self.ymax - self.ymin)/self.gdY +1 )
         self.space_X, self.space_Y = np.meshgrid(lin_x, lin_y)
 
         [self.X_src, self.Y_src, _, _, self.R] = KCSD2D.make_src_2D(self.space_X, self.space_Y, self.n_sources, 
@@ -189,9 +188,10 @@ class KCSD2D(object):
         ds        - spacing between the sources
         """
         coeff = [Ly, Lx - Ly, -Lx * n_src];
+
         rts = np.roots(coeff)
         r = [r for r in rts if type(r) is not complex and r > 0]
-        nx = r[-1]
+        nx = r[0]
         ny = n_src/nx
 
         ds = Lx/(nx-1)
@@ -229,12 +229,10 @@ class KCSD2D(object):
         ext_x_n = (Lx_nn - Lx)/2
         ext_y_n = (Ly_nn - Ly)/2
 
-        #X_src, Y_src = np.meshgrid( np.arange(-ext_x_n, Lx+ext_x_n, ds), np.arange(-ext_y_n, Ly+ext_y_n, ds))
-
-        X_src, Y_src = np.meshgrid( np.linspace(-ext_x_n, Lx+ext_x_n, (Lx+2*ext_x_n)/ds), 
-                                    np.linspace(-ext_y_n, Ly+ext_y_n, (Lx+2*ext_y_n)/ds))
+        X_src, Y_src = np.meshgrid( np.linspace(-ext_x_n, Lx+ext_x_n, (Lx+2*ext_x_n)/ds + 1), 
+                                    np.linspace(-ext_y_n, Ly+ext_y_n, (Lx+2*ext_y_n)/ds + 1))
     
-        d = round(R_init/ds)
+        d = np.round(R_init/ds)
         R = d * ds
 
         return X_src, Y_src, nx, ny, R
@@ -279,7 +277,7 @@ class KCSD2D(object):
         three_stdev -- three times the std of the distribution
         """
         h = 1./(2*pi)
-        stdev = three_stdev/3
+        stdev = three_stdev/3.0
         invsigma = stdev **(-1)
         h_n = h * stdev/1
         Z = h_n * np.exp ( -invsigma**2 * 0.5 * ((x - mu[0])**2 + (y - mu[1])**2) )
@@ -290,7 +288,7 @@ class KCSD2D(object):
         """
         Returns normalized 2D step function
         """
-        s = int(xp**2 + yp**2 < R**2)
+        s = int(xp**2 + yp**2 <= R**2)
         return s
 
     @staticmethod
@@ -301,7 +299,7 @@ class KCSD2D(object):
         """
         pot, err = integrate.dblquad(KCSD2D.int_pot, -R, R, lambda x:-R, lambda x:R, args=(x,R,h,src_type), epsrel=1e0, epsabs=1e0)
         #print err
-        pot = 1./(2.0*pi*sigma)*pot
+        pot *= 1./(2.0*pi*sigma)
         return pot
 
     def create_dist_table(self):
@@ -315,17 +313,17 @@ class KCSD2D(object):
         dense_step = 3
         denser_step = 1
         sparse_step = 9
-        border1 = 0.9*self.R/self.dist_max * self.__dist_density
-        border2 = 1.3*self.R/self.dist_max * self.__dist_density
+        border1 = 0.9*self.R/self.dist_max * self.__dist_table_density
+        border2 = 1.3*self.R/self.dist_max * self.__dist_table_density
     
-        xs = np.arange( 1,  border1, dense_step )
+        xs = np.arange( 0,  border1, dense_step )
         xs = np.append( xs, border1 )
         zz = np.arange( (border1 + denser_step), border2, dense_step )
 
         xs = np.concatenate( (xs,zz) )
         xs = np.append( xs, [border2, (border2+denser_step)] )
-        xs = np.concatenate( (xs, np.arange((border2 + denser_step + sparse_step/2), self.__dist_density, sparse_step)) )
-        xs = np.append( xs, self.__dist_density+1)
+        xs = np.concatenate( (xs, np.arange((border2 + denser_step + sparse_step/2.), self.__dist_table_density, sparse_step)) )
+        xs = np.append( xs, self.__dist_table_density + 1)
     
         xs = np.unique(np.array(xs))
         #print 'xs: ', xs
@@ -333,15 +331,15 @@ class KCSD2D(object):
         dist_table = np.zeros(len(xs))
 
         for i in xrange(len(xs)):
-            dist_table[i] = KCSD2D.b_pot_2d_cont(((xs[i]-1)/self.__dist_density) * self.dist_max,
+            dist_table[i] = KCSD2D.b_pot_2d_cont(((xs[i])/self.__dist_table_density) * self.dist_max,
                                                 self.R, self.h, self.sigma, self.source_type)
     
         #print "dt: ", dist_table
-
-        inter = interp1d(x=xs-1, y=dist_table, kind='cubic', fill_value=0.0)
-        dt_int = np.array([inter(xx) for xx in xrange(self.__dist_density) ])
+        #xs-1
+        inter = interp1d(x=xs, y=dist_table, kind='cubic', fill_value=0.0)
+        dt_int = np.array([inter(xx) for xx in xrange(self.__dist_table_density) ])
         dt_int.flatten()
-        #print dt_int
+
         self.dist_table = dt_int.copy()
         #return dt_int
 
@@ -390,7 +388,8 @@ class KCSD2D(object):
                 arg = np.array([self.elec_pos[j,0], self.elec_pos[j,1]])
                 r = norm(arg - src)
       
-                ind = uint16(dt_len * r/dist_max)+1
+                ind = uint16(np.round(dt_len * r/dist_max))
+
                 if ind > dt_len:
                     ind = dt_len;
                     raise Exception('Dist table exception')
@@ -445,7 +444,7 @@ class KCSD2D(object):
         """
         """
         norms = np.sqrt((self.space_X - x_src)**2 + (self.space_Y - y_src)**2)
-        inds = np.maximum(1, np.minimum( np.uint16(dt_len * norms/dist_max), dt_len))-1
+        inds = np.maximum(0, np.minimum( uint16(np.round(dt_len * norms/dist_max)), dt_len))
 
         pot = self.dist_table[inds]
         return pot
@@ -464,7 +463,7 @@ class KCSD2D(object):
         ng = ngx * ngy
 
         [nsx, nsy] = self.X_src.shape
-        n_src = nsy * nsx  #(total number of sources)
+        n_src = nsy * nsx  # total number of sources
 
         self.b_interp_pot_matrix = np.zeros((self.space_X.shape[0], self.space_X.shape[1], n_src))
     
@@ -475,10 +474,6 @@ class KCSD2D(object):
             x_src = self.X_src[i_x, i_y]       
         
             self.b_interp_pot_matrix[:, :, src] = self.generated_potential(x_src, y_src, dist_max, dt_len)
-    
-        #print b_interp_pot_matrix
-        print self.b_interp_pot_matrix.shape
-        print ng, n_src
    
         self.b_interp_pot_matrix = self.b_interp_pot_matrix.reshape(ng, n_src)
 

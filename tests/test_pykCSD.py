@@ -11,7 +11,7 @@ Tests for `pykCSD` module.
 import unittest
 import numpy as np
 
-# from pylab import *
+from pylab import *
 from numpy.linalg import norm
 from pykCSD.pykCSD import KCSD1D
 from pykCSD.pykCSD import KCSD2D
@@ -114,14 +114,14 @@ class TestKCSD1D(unittest.TestCase):
 
     def test_KCSD1D_time_frames(self):
         """given array of dimension (pots, time) it should calculate pots and csd for every time frame"""
-        #missing functionality
+        # missing functionality
         pass
 
     def tearDown(self):
         pass
 
 
-class testKCSD1D_full_reconstruction(unittest.TestCase):
+class TestKCSD1D_full_reconstruction(unittest.TestCase):
 
     def setUp(self):
         self.sigma = 0.1
@@ -175,16 +175,10 @@ class testKCSD1D_full_reconstruction(unittest.TestCase):
         self.assertLess(k.lambd, 1.0)
 
 
-
-
-
 class TestKCSD2D(unittest.TestCase):
 
     def setUp(self):
-        elec_pos = np.array([[0, 0], [0,1], [1,1]])
-        pots = np.array([0, 0, 1.0])
-        #self.k = KCSD2D(elec_pos, pots)
-        #self.k.calculate_matrices()
+        pass
 
     def test_KCSD2D_int_pot(self):
         """results of int_pot function should be almost equal to kCSD2D (matlab) results"""
@@ -201,24 +195,9 @@ class TestKCSD2D(unittest.TestCase):
                                          R=Rs[i], h=hs[i], src_type='gaussian')
             self.assertAlmostEqual(expected_result, kcsd_result, places=3)
 
-    def test_KCSD2D_k_pot_three_electrodes(self):
-        pass
-
-    def test_KCSD2D_b_src_matrix_three_electrodes(self):
-        pass
-
-    def test_KCSD2D_pot_estimation_three_electrodes(self):
-        pass
-
-    def test_KCSD2D_csd_estimation_three_electrodes(self):
-        pass
-
-    def test_KCSD2D_cross_validation_three_electrodes(self):
-        pass
-
     def test_KCSD2D_zero_pot(self):
-        elec_pos = np.array([[0,0],[0,1],[1,0],[1,1]])
-        pots = np.array([0,0,0,0])
+        elec_pos = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
+        pots = np.array([0, 0, 0, 0])
         k = KCSD2D(elec_pos, pots)
         k.calculate_matrices()
         k.estimate_pots()
@@ -226,8 +205,8 @@ class TestKCSD2D(unittest.TestCase):
             self.assertAlmostEqual(pot, 0.0, places=5)
 
     def test_KCSD2D_zero_csd(self):
-        elec_pos = np.array([[0,0],[0,1],[1,0],[1,1]])
-        pots = np.array([0,0,0,0])
+        elec_pos = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
+        pots = np.array([0, 0, 0, 0])
         k = KCSD2D(elec_pos, pots)
         k.calculate_matrices()
         k.estimate_csd()
@@ -237,6 +216,136 @@ class TestKCSD2D(unittest.TestCase):
     def tearDown(self):
         pass
 
+
+class TestKCSD2D_full_recostruction(unittest.TestCase):
+
+    def setUp(self):
+        elec_pos = np.loadtxt('tests/test_datasets/KCSD2D/five_elec_elecs.dat', delimiter=',')
+        pots = np.loadtxt('tests/test_datasets/KCSD2D/five_elec_pots.dat', delimiter=',')
+        params = {'n_sources': 9, 'gdX': 0.1, 'gdY': 0.1}
+        self.k = KCSD2D(elec_pos, pots, params)
+        self.k.calculate_matrices()
+
+    def test_KCSD2D_R_five_electrodes(self):
+        expected_R = np.loadtxt('tests/test_datasets/KCSD2D/five_elec_R.dat', delimiter=',')
+        self.assertAlmostEqual(self.k.R, expected_R, places=5)
+
+    def test_KCSD2D_b_pot_five_electrodes(self):
+        expected_b_pot = np.loadtxt('tests/test_datasets/KCSD2D/five_elec_bpot.dat', delimiter =',')
+        err = norm(expected_b_pot - self.k.b_pot_matrix, ord=2)
+        """fig, (ax11, ax21, ax22) = plt.subplots(1, 3)
+
+        ax11.imshow(expected_b_pot, interpolation='none', aspect='auto')
+        ax11.set_title('matlab')
+        ax11.autoscale_view(True, True, True)
+
+        ax21.imshow(self.k.b_pot_matrix, interpolation='none', aspect='auto')
+        ax21.set_title('python')
+        ax21.autoscale_view(True, True, True)
+
+        ax22.imshow(expected_b_pot - self.k.b_pot_matrix, interpolation='none', aspect='auto')
+        ax22.set_title('diff')
+        ax22.autoscale_view(True, True, True)
+
+        show()"""
+        self.assertAlmostEqual(err, 0.0, places=3)
+
+    def test_KCSD2D_k_pot_five_electrodes(self):
+        expected_k_pot = np.loadtxt('tests/test_datasets/KCSD2D/five_elec_kpot.dat', delimiter =',')
+        err = norm(expected_k_pot - self.k.k_pot, ord=2)
+        """fig, (ax11, ax21, ax22) = plt.subplots(1, 3)
+
+        ax11.imshow(expected_k_pot, interpolation='none', aspect='auto')
+        ax11.set_title('matlab')
+        ax11.autoscale_view(True, True, True)
+
+        ax21.imshow(self.k.k_pot, interpolation='none', aspect='auto')
+        ax21.set_title('python')
+        ax21.autoscale_view(True, True, True)
+
+        ax22.imshow(expected_k_pot - self.k.k_pot, interpolation='none', aspect='auto')
+        ax22.set_title('diff')
+        ax22.autoscale_view(True, True, True)
+
+        show()"""
+        self.assertAlmostEqual(err, 0.0, places=3)
+
+
+    def test_KCSD2D_dist_table(self):
+        expected_dt = np.loadtxt('tests/test_datasets/KCSD2D/five_elec_dist_table.dat', delimiter =',')
+        err = norm(expected_dt - self.k.dist_table)
+        #plot(expected_dt-self.k.dist_table)
+        #show()
+        self.assertAlmostEqual(err, 0.0, places=4)
+
+    def test_KCSD2D_b_src_matrix_five_electrodes(self):
+        expected_b_src_matrix = np.loadtxt('tests/test_datasets/KCSD2D/five_elec_b_src_matrix.dat', delimiter =',')
+        
+        """fig, (ax11, ax21, ax22) = plt.subplots(1, 3)
+        
+        ax11.imshow(expected_b_src_matrix, interpolation='none', aspect='auto')
+        ax11.set_title('matlab')
+        ax11.autoscale_view(True,True,True)
+
+        ax21.imshow(self.k.b_src_matrix, interpolation='none', aspect='auto')
+        ax21.set_title('python')
+        ax21.autoscale_view(True,True,True)
+
+        ax22.imshow(expected_b_src_matrix - self.k.b_src_matrix, interpolation='none', aspect='auto')
+        ax22.set_title('diff')
+        ax22.autoscale_view(True,True,True)
+
+        show()"""
+        err = norm(expected_b_src_matrix - self.k.b_src_matrix)
+        self.assertAlmostEqual(err, 0.0, places=4)
+
+    def test_KCSD2D_pot_estimation_five_electrodes(self):
+        self.k.estimate_pots()
+        expected_pots = np.loadtxt('tests/test_datasets/KCSD2D/five_elec_estimated_pot.dat', delimiter =',')
+        err = norm(expected_pots - self.k.estimated_pots, ord=2)
+        """fig, (ax11, ax21, ax22) = plt.subplots(1, 3)
+
+        ax11.imshow(expected_pots, interpolation='none', aspect='auto')
+        ax11.set_title('matlab')
+        ax11.autoscale_view(True, True, True)
+
+        ax21.imshow(self.k.estimated_pots, interpolation='none', aspect='auto')
+        ax21.set_title('python')
+        ax21.autoscale_view(True, True, True)
+
+        ax22.imshow(expected_pots - self.k.estimated_pots, interpolation='none', aspect='auto')
+        ax22.set_title('diff')
+        ax22.autoscale_view(True, True, True)
+
+        show()"""
+        self.assertAlmostEqual(err, 0.0, places=2)
+
+    def test_KCSD2D_csd_estimation_five_electrodes(self):
+        self.k.estimate_csd()
+        expected_csd = np.loadtxt('tests/test_datasets/KCSD2D/five_elec_estimated_csd.dat', delimiter =',')
+        err = norm(expected_csd - self.k.estimated_csd, ord=2)
+        """fig, (ax11, ax21, ax22) = plt.subplots(1, 3)
+
+        ax11.imshow(expected_csd, interpolation='none', aspect='auto')
+        ax11.set_title('matlab')
+        ax11.autoscale_view(True, True, True)
+
+        ax21.imshow(self.k.estimated_csd, interpolation='none', aspect='auto')
+        ax21.set_title('python')
+        ax21.autoscale_view(True, True, True)
+
+        ax22.imshow(expected_csd - self.k.estimated_csd, interpolation='none', aspect='auto')
+        ax22.set_title('diff')
+        ax22.autoscale_view(True, True, True)
+
+        show()"""
+        self.assertAlmostEqual(err, 0.0, places=0)
+
+    def test_KCSD2D_cross_validation_five_electrodes(self):
+        pass
+
+    def tearDown(self):
+        pass
 
 if __name__ == '__main__':
     unittest.main()
