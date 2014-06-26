@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from KCSD1D import KCSD1D
 from KCSD2D import KCSD2D
+from KCSD3D import KCSD3D
 
 
 class KCSD(object):
@@ -31,8 +32,7 @@ class KCSD(object):
         elif dim == 2:
            self.solver = KCSD2D(elec_pos, sampled_pots, params)
         elif dim == 3:
-            pass
-        #   self.solver = KCSD3D()
+           self.solver = KCSD3D(elec_pos, sampled_pots, params)
         else:
             raise Exception("Incorrect electrode format.")
         self.solver.calculate_matrices()
