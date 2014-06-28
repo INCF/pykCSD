@@ -2,11 +2,11 @@
 import numpy as np
 from numpy import pi, uint16
 from numpy import dot, transpose, identity
-from sklearn.cross_validation import KFold, LeaveOneOut, ShuffleSplit
 from matplotlib import pylab as plt
 from scipy.interpolate import interp1d
 from scipy import integrate
 from numpy.linalg import norm
+import cross_validation as cv
 
 
 class KCSD3D(object):
@@ -52,7 +52,7 @@ class KCSD3D(object):
         self.zmin = params.get('z_min', np.min(self.elec_pos[:,2]))
 
         self.lambd = params.get('lambda', 0.0)
-        self.R_init = params.get('R_init', 2*KCSD2D.calc_min_dist(self.elec_pos))
+        self.R_init = params.get('R_init', 2*KCSD3D.calc_min_dist(self.elec_pos))
         self.h = params.get('h', 1.0)
         self.ext_X = params.get('ext_X', 0.0)
         self.ext_Y = params.get('ext_Y', 0.0)
@@ -93,7 +93,7 @@ class KCSD3D(object):
         k_inv = np.linalg.inv(self.k_pot + self.lambd * identity(self.k_pot.shape[0]))
         beta = dot(k_inv, self.sampled_pots)
 
-        nx,ny = self.space_X.shape
+        nx,ny,nz = self.space_X.shape
         output = np.zeros(nx*ny)
 
         for i in xrange(self.elec_pos.shape[0]):
@@ -289,7 +289,7 @@ class KCSD3D(object):
         """
         self.make_b_interp_pot_matrix_3D()
 
-    def generated_potential(self, x_src, y_src,  dist_max, dt_len):
+    def generated_potential(self, x_src, y_src, z_src,  dist_max, dt_len):
         """
         """
         pass
@@ -302,41 +302,6 @@ class KCSD3D(object):
         pass
 
 
-    def calc_CV_error(self, lambd, pot, k_pot, ind_test, ind_train):
-        k_train = k_pot[ind_train, ind_train]
-    
-        pot_train = pot[ind_train]
-        pot_test = pot[ind_test]
-    
-        beta = dot(np.linalg.inv(k_train + lambd * identity(k_train.shape[0])), pot_train)
-    
-        #k_cross = k_pot[np.array([ind_test, ind_train])]
-        k_cross = k_pot[ind_test][:, ind_train]
-    
-        pot_est = dot(k_cross, beta)
-
-        err = np.linalg.norm(pot_test - pot_est)
-        return err
-
-    def cross_validation(self, lambd, pot, k_pot, n_folds):
-        """
-        Calculate error using LeaveOneOut or KFold cross validation.
-        """
-        n = len(self.elec_pos)
-        errors = []
-
-        #ind_generator = KFold(n, n_folds=n_folds, indices=True)
-        ind_generator = LeaveOneOut(n, indices=True)
-        #ind_generator = ShuffleSplit(5, n_iter=15, test_size=0.25, indices=True)
-        #ind_generator = LeavePOut(len(Y), 2)
-        for ind_train, ind_test in ind_generator:
-            err = self.calc_CV_error(lambd, pot, k_pot, ind_test, ind_train)
-            errors.append(err)
-
-        error = np.mean(errors)
-        #print "l=", lambd, ", err=", error
-        return error
-
     def choose_lambda(self, lambdas, n_folds=1, n_iter=1):
         """
         Finds the optimal regularization parameter lambda for Tikhonov regularization using cross validation.
@@ -346,7 +311,8 @@ class KCSD3D(object):
         errors_iter = np.zeros(n_iter)
         for i, lambd in enumerate(lambdas):
             for j in xrange(n_iter):
-                errors_iter[j] = self.cross_validation(lambd, self.sampled_pots, self.k_pot, n_folds)
+                errors_iter[j] = cv.cross_validation(lambd, self.sampled_pots, self.k_pot, 
+                                                     self.elec_pos.shape[0], n_folds)
             errors[i] = np.mean(errors_iter)
         return lambdas[errors == min(errors)][0]
 
