@@ -127,16 +127,23 @@ class KCSD2D(object):
         return info
 
     def plot_all(self):
+        extent = [self.xmin, self.xmax, self.ymin, self.ymax]
+
         fig, (ax11, ax21, ax22) = plt.subplots(1, 3)
         
-        #ax11.scatter(self.elec_pos, self.sampled_pots)
+        ax11.set_xlim([extent[0], extent[1]])
+        ax11.set_ylim([extent[2], extent[3]])
+        ax11.scatter(x=self.elec_pos[:,0], y=self.elec_pos[:,1],  
+                     c=self.sampled_pots, s=200, marker='s')
         ax11.set_title('Measured potentials')
 
-        ax21.imshow(self.estimated_pots, interpolation='none')
+        ax21.imshow(self.estimated_pots.T, interpolation='none', 
+                    extent=extent, aspect="auto", origin='lower')
         ax21.set_title('Calculated potentials')
         ax21.autoscale_view(True,True,True)
 
-        ax22.imshow(self.estimated_csd, interpolation='none')
+        ax22.imshow(self.estimated_csd.T, interpolation='none', 
+                    extent=extent, aspect="auto", origin='lower')
         ax22.set_title('Calculated CSD')
         ax22.autoscale_view(True,True,True)
         
@@ -229,8 +236,8 @@ class KCSD2D(object):
         ext_x_n = (Lx_nn - Lx)/2
         ext_y_n = (Ly_nn - Ly)/2
 
-        X_src, Y_src = np.meshgrid( np.linspace(-ext_x_n, Lx+ext_x_n, (Lx+2*ext_x_n)/ds + 1), 
-                                    np.linspace(-ext_y_n, Ly+ext_y_n, (Lx+2*ext_y_n)/ds + 1))
+        X_src, Y_src = np.meshgrid(np.linspace(-ext_x_n, Lx+ext_x_n, (Lx+2*ext_x_n)/ds + 1), 
+                                   np.linspace(-ext_y_n, Ly+ext_y_n, (Lx+2*ext_y_n)/ds + 1))
     
         d = np.round(R_init/ds)
         R = d * ds
@@ -260,11 +267,11 @@ class KCSD2D(object):
             y = 0.00001
         y = np.arcsinh(h/y)
         if src_type == 'step':
-            y = y * KCSD2D.step_rescale(xp, yp, R)
+            y *= KCSD2D.step_rescale(xp, yp, R)
         elif src_type == 'gaussian':
-            y = y * KCSD2D.gauss_rescale_2D(xp, yp, [0,0], R);
+            y *= KCSD2D.gauss_rescale_2D(xp, yp, [0,0], R);
         elif src_type == 'gauss_lim':
-            y = y * gauss2D_rescale_lim(xp, yp, [0,0], R);
+            y *= gauss2D_rescale_lim(xp, yp, [0,0], R);
         return y
 
     @staticmethod
@@ -278,9 +285,9 @@ class KCSD2D(object):
         """
         h = 1./(2*pi)
         stdev = three_stdev/3.0
-        invsigma = stdev **(-1)
+        inv_std = 1.0/stdev
         h_n = h * stdev/1
-        Z = h_n * np.exp ( -invsigma**2 * 0.5 * ((x - mu[0])**2 + (y - mu[1])**2) )
+        Z = h_n * np.exp ( -inv_std**2 * 0.5 * ((x - mu[0])**2 + (y - mu[1])**2) )
         return Z
 
     @staticmethod
@@ -327,6 +334,7 @@ class KCSD2D(object):
     
         xs = np.unique(np.array(xs))
         #print 'xs: ', xs
+        print 'xs.shape: ', xs.shape
 
         dist_table = np.zeros(len(xs))
 
@@ -337,7 +345,7 @@ class KCSD2D(object):
         #print "dt: ", dist_table
         #xs-1
         inter = interp1d(x=xs, y=dist_table, kind='cubic', fill_value=0.0)
-        dt_int = np.array([inter(xx) for xx in xrange(self.__dist_table_density) ])
+        dt_int = np.array([inter(xx) for xx in xrange(self.__dist_table_density)])
         dt_int.flatten()
 
         self.dist_table = dt_int.copy()
@@ -364,7 +372,7 @@ class KCSD2D(object):
                    the potential basis functions in all the electrode
                     positions (essential for calculating the cross_matrix)
         """
-        n_obs = len(self.elec_pos)
+        n_obs = self.elec_pos.shape[0]
         nx, ny = self.X_src.shape
         n = nx * ny
  
@@ -386,13 +394,10 @@ class KCSD2D(object):
                 # checking the distance between the observation point and the source,
                 # calculating the base value            
                 arg = np.array([self.elec_pos[j,0], self.elec_pos[j,1]])
-                r = norm(arg - src)
+                dist = norm(arg - src)
       
-                ind = uint16(np.round(dt_len * r/dist_max))
+                ind = np.maximum(0, np.minimum( uint16(np.round(dt_len * dist/dist_max)), dt_len-1))
 
-                if ind > dt_len:
-                    ind = dt_len;
-                    raise Exception('Dist table exception')
                 self.b_pot_matrix[i,j] = self.dist_table[ind]
 
     def calculate_b_src_matrix(self):
@@ -444,9 +449,9 @@ class KCSD2D(object):
         """
         """
         norms = np.sqrt((self.space_X - x_src)**2 + (self.space_Y - y_src)**2)
-        inds = np.maximum(0, np.minimum( uint16(np.round(dt_len * norms/dist_max)), dt_len))
+        ind = np.maximum(0, np.minimum( uint16(np.round(dt_len * norms/dist_max)), dt_len-1))
 
-        pot = self.dist_table[inds]
+        pot = self.dist_table[ind]
         return pot
 
 
