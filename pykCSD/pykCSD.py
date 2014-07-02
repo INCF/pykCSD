@@ -24,7 +24,7 @@ class KCSD(object):
         'z_min',
         'z_max'
         """
-        dim = len(elec_pos.shape)
+        dim = len(elec_pos[0])
         print("Initializing kCSD %dD" % (dim))
 
         if dim == 1:

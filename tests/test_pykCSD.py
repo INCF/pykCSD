@@ -222,7 +222,7 @@ class TestKCSD2D_full_recostruction(unittest.TestCase):
     def setUp(self):
         elec_pos = np.loadtxt('tests/test_datasets/KCSD2D/five_elec_elecs.dat', delimiter=',')
         pots = np.loadtxt('tests/test_datasets/KCSD2D/five_elec_pots.dat', delimiter=',')
-        params = {'n_sources': 9, 'gdX': 0.1, 'gdY': 0.1}
+        params = {'n_sources': 9, 'dx': 0.1, 'dy': 0.1}
         self.k = KCSD2D(elec_pos, pots, params)
         self.k.calculate_matrices()
 
@@ -253,21 +253,6 @@ class TestKCSD2D_full_recostruction(unittest.TestCase):
     def test_KCSD2D_k_pot_five_electrodes(self):
         expected_k_pot = np.loadtxt('tests/test_datasets/KCSD2D/five_elec_kpot.dat', delimiter =',')
         err = norm(expected_k_pot - self.k.k_pot, ord=2)
-        """fig, (ax11, ax21, ax22) = plt.subplots(1, 3)
-
-        ax11.imshow(expected_k_pot, interpolation='none', aspect='auto')
-        ax11.set_title('matlab')
-        ax11.autoscale_view(True, True, True)
-
-        ax21.imshow(self.k.k_pot, interpolation='none', aspect='auto')
-        ax21.set_title('python')
-        ax21.autoscale_view(True, True, True)
-
-        ax22.imshow(expected_k_pot - self.k.k_pot, interpolation='none', aspect='auto')
-        ax22.set_title('diff')
-        ax22.autoscale_view(True, True, True)
-
-        show()"""
         self.assertAlmostEqual(err, 0.0, places=3)
 
 
@@ -280,7 +265,7 @@ class TestKCSD2D_full_recostruction(unittest.TestCase):
 
     def test_KCSD2D_b_src_matrix_five_electrodes(self):
         expected_b_src_matrix = np.loadtxt('tests/test_datasets/KCSD2D/five_elec_b_src_matrix.dat', delimiter =',')
-        
+
         """fig, (ax11, ax21, ax22) = plt.subplots(1, 3)
         
         ax11.imshow(expected_b_src_matrix, interpolation='none', aspect='auto')
@@ -318,6 +303,7 @@ class TestKCSD2D_full_recostruction(unittest.TestCase):
         ax22.autoscale_view(True, True, True)
 
         show()"""
+        #print np.max(expected_pots - self.k.estimated_pots)
         self.assertAlmostEqual(err, 0.0, places=2)
 
     def test_KCSD2D_csd_estimation_five_electrodes(self):
@@ -339,6 +325,7 @@ class TestKCSD2D_full_recostruction(unittest.TestCase):
         ax22.autoscale_view(True, True, True)
 
         show()"""
+        #print np.max(expected_csd - self.k.estimated_csd)
         self.assertAlmostEqual(err, 0.0, places=0)
 
     def test_KCSD2D_cross_validation_five_electrodes(self):

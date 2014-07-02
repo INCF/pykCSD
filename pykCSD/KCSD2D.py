@@ -55,29 +55,25 @@ class KCSD2D(object):
         self.lambd = params.get('lambda', 0.0)
         self.R_init = params.get('R_init', 2*KCSD2D.calc_min_dist(self.elec_pos))
         self.h = params.get('h', 1.0)
-        self.ext_X = params.get('ext_X', 0.0)
-        self.ext_Y = params.get('ext_Y', 0.0)
+        self.ext_x = params.get('ext_x', 0.0)
+        self.ext_y = params.get('ext_y', 0.0)
 
-        self.gdX = params.get('gdX', 0.01*(self.xmax - self.xmin))
-        self.gdY = params.get('gdY', 0.01*(self.ymax - self.ymin))
+        self.dx = params.get('dx', 0.01*(self.xmax - self.xmin))
+        self.dy = params.get('dy', 0.01*(self.ymax - self.ymin))
         self.__dist_table_density = 100
 
-        if 'source_type' in params:
-            if params['source_type'] in ["gaussian", "step"]:
-                self.source_type = params['source_type']
-            else:
-                raise Exception("Incorrect source type!")
-        else:    
-            self.source_type = "gaussian"
+        self.source_type = params.get('source_type', 'gaussian')
+        if self.source_type not in ["gaussian", "step"]:
+            raise Exception("Incorrect source type!")
 
         self.lambdas = np.array([1.0 / 2**n for n in xrange(0, 20)])
 
-        lin_x = np.linspace(self.xmin, self.xmax, (self.xmax - self.xmin)/self.gdX +1 )
-        lin_y = np.linspace(self.ymin, self.ymax, (self.ymax - self.ymin)/self.gdY +1 )
+        lin_x = np.linspace(self.xmin, self.xmax, (self.xmax - self.xmin)/self.dx +1 )
+        lin_y = np.linspace(self.ymin, self.ymax, (self.ymax - self.ymin)/self.dy +1 )
         self.space_X, self.space_Y = np.meshgrid(lin_x, lin_y)
 
         [self.X_src, self.Y_src, _, _, self.R] = KCSD2D.make_src_2D(self.space_X, self.space_Y, self.n_sources, 
-                                                                    self.ext_X, self.ext_Y, self.R_init)
+                                                                    self.ext_x, self.ext_x, self.R_init)
         
         Lx = np.max(self.X_src) - np.min(self.X_src) + self.R
         Ly = np.max(self.Y_src) - np.min(self.Y_src) + self.R
@@ -90,7 +86,7 @@ class KCSD2D(object):
         k_inv = np.linalg.inv(self.k_pot + self.lambd * identity(self.k_pot.shape[0]))
         beta = dot(k_inv, self.sampled_pots)
 
-        nx,ny = self.space_X.shape
+        (nx,ny) = self.space_X.shape
         output = np.zeros(nx*ny)
 
         for i in xrange(self.elec_pos.shape[0]):
@@ -106,7 +102,7 @@ class KCSD2D(object):
         k_inv = np.linalg.inv(self.k_pot + self.lambd * identity(self.k_pot.shape[0]))
         beta = dot(k_inv, self.sampled_pots)
         
-        nx,ny = self.space_X.shape
+        (nx,ny) = self.space_X.shape
         output = np.zeros(nx*ny)
 
         for i in xrange(self.elec_pos.shape[0]):
@@ -209,7 +205,7 @@ class KCSD2D(object):
         Lx_n = (nx - 1) * ds
         Ly_n = (ny - 1) * ds
 
-        return [nx, ny, Lx_n, Ly_n, ds]
+        return (nx, ny, Lx_n, Ly_n, ds)
 
     @staticmethod
     def make_src_2D(X, Y, n_src, ext_x, ext_y, R_init):
@@ -225,8 +221,8 @@ class KCSD2D(object):
         nx,ny             - number of sources in directions x,y,z
         R                 - effective radius of the basis element 
         """
-        Lx = np.max(X) 
-        Ly = np.max(Y)
+        Lx = np.max(X) - np.min(X)
+        Ly = np.max(Y) - np.min(Y)
 
         Lx_n = Lx + 2*ext_x 
         Ly_n = Ly + 2*ext_y
@@ -269,19 +265,19 @@ class KCSD2D(object):
         if src_type == 'step':
             y *= KCSD2D.step_rescale(xp, yp, R)
         elif src_type == 'gaussian':
-            y *= KCSD2D.gauss_rescale_2D(xp, yp, [0,0], R);
+            y *= KCSD2D.gauss_rescale(xp, yp, [0,0], R)
         elif src_type == 'gauss_lim':
-            y *= gauss2D_rescale_lim(xp, yp, [0,0], R);
+            y *= gauss_rescale_lim(xp, yp, [0,0], R)
         return y
 
     @staticmethod
-    def gauss_rescale_2D(x, y, mu, three_stdev):
+    def gauss_rescale(x, y, mu, three_stdev):
         """
         Returns normalized gaussian 2D scale function 
 
         x, y        -- coordinates a point at which we calculate the density 
         mu          -- distribution mean vector
-        three_stdev -- three times the std of the distribution
+        three_stdev -- 3 * standard deviation of the distribution
         """
         h = 1./(2*pi)
         stdev = three_stdev/3.0
@@ -295,8 +291,12 @@ class KCSD2D(object):
         """
         Returns normalized 2D step function
         """
-        s = int(xp**2 + yp**2 <= R**2)
+        s = (xp**2 + yp**2 <= R**2)
         return s
+
+    @staticmethod
+    def gauss_rescale_lim():
+        pass
 
     @staticmethod
     def b_pot_2d_cont(x, R, h, sigma, src_type):
@@ -304,7 +304,8 @@ class KCSD2D(object):
         Returns the value of the potential at point (x,0) generated
         by a basis source located at (0,0)
         """
-        pot, err = integrate.dblquad(KCSD2D.int_pot, -R, R, lambda x:-R, lambda x:R, args=(x,R,h,src_type), epsrel=1e0, epsabs=1e0)
+        pot, err = integrate.dblquad(KCSD2D.int_pot, -R, R, lambda x:-R, lambda x:R, 
+                                     args=(x,R,h,src_type), epsrel=1e0, epsabs=1e0)
         #print err
         pot *= 1./(2.0*pi*sigma)
         return pot
@@ -329,21 +330,18 @@ class KCSD2D(object):
 
         xs = np.concatenate( (xs,zz) )
         xs = np.append( xs, [border2, (border2+denser_step)] )
-        xs = np.concatenate( (xs, np.arange((border2 + denser_step + sparse_step/2.), self.__dist_table_density, sparse_step)) )
+        xs = np.concatenate( (xs, np.arange((border2 + denser_step + sparse_step/2.), 
+                              self.__dist_table_density, sparse_step)) )
         xs = np.append( xs, self.__dist_table_density + 1)
     
         xs = np.unique(np.array(xs))
-        #print 'xs: ', xs
-        print 'xs.shape: ', xs.shape
 
         dist_table = np.zeros(len(xs))
 
-        for i in xrange(len(xs)):
-            dist_table[i] = KCSD2D.b_pot_2d_cont(((xs[i])/self.__dist_table_density) * self.dist_max,
+        for i, x in enumerate(xs):
+            dist_table[i] = KCSD2D.b_pot_2d_cont((x/self.__dist_table_density) * self.dist_max,
                                                 self.R, self.h, self.sigma, self.source_type)
-    
         #print "dt: ", dist_table
-        #xs-1
         inter = interp1d(x=xs, y=dist_table, kind='cubic', fill_value=0.0)
         dt_int = np.array([inter(xx) for xx in xrange(self.__dist_table_density)])
         dt_int.flatten()
@@ -373,7 +371,7 @@ class KCSD2D(object):
                     positions (essential for calculating the cross_matrix)
         """
         n_obs = self.elec_pos.shape[0]
-        nx, ny = self.X_src.shape
+        (nx, ny) = self.X_src.shape
         n = nx * ny
  
         Lx = np.max(self.X_src) - np.min(self.X_src) + self.R
@@ -396,7 +394,7 @@ class KCSD2D(object):
                 arg = np.array([self.elec_pos[j,0], self.elec_pos[j,1]])
                 dist = norm(arg - src)
       
-                ind = np.maximum(0, np.minimum( uint16(np.round(dt_len * dist/dist_max)), dt_len-1))
+                ind = np.minimum( uint16(np.round(dt_len * dist/dist_max)), dt_len-1)
 
                 self.b_pot_matrix[i,j] = self.dist_table[ind]
 
@@ -424,16 +422,16 @@ class KCSD2D(object):
     
         for i in xrange(n): 
             #getting the coordinates of the i-th source
-            [i_x, i_y] = np.unravel_index(i, (nsx,nsy), order='F')
+            (i_x, i_y) = np.unravel_index(i, (nsx,nsy), order='F')
             y_src = self.Y_src[i_x, i_y]
             x_src = self.X_src[i_x, i_y]
         
             if self.source_type == 'step':
                 self.b_src_matrix[:,:,i]= ( (self.space_X-x_src)**2 + (self.space_Y-y_src)**2 <= R2)
             elif self.source_type == 'gaussian':
-                self.b_src_matrix[:,:,i] = KCSD2D.gauss_rescale_2D(self.space_X, self.space_Y, [x_src,y_src], self.R)
+                self.b_src_matrix[:,:,i] = KCSD2D.gauss_rescale(self.space_X, self.space_Y, [x_src,y_src], self.R)
             elif self.source_type == 'gauss_lim':
-                self.b_src_matrix[:,:,i] = gauss_rescale_lim(self.space_X, self.space_Y, [x_src,y_src], self.R)            
+                self.b_src_matrix[:,:,i] = KCSD2D.gauss_rescale_lim(self.space_X, self.space_Y, [x_src,y_src], self.R)            
 
         self.b_src_matrix = self.b_src_matrix.reshape(ng,n)
 
@@ -464,13 +462,13 @@ class KCSD2D(object):
         Ly = np.max(self.Y_src) - np.min(self.Y_src) + self.R
         dist_max = np.sqrt(Lx**2 + Ly**2)
 
-        ngx, ngy = self.space_X.shape
+        (ngx, ngy) = self.space_X.shape
         ng = ngx * ngy
 
-        [nsx, nsy] = self.X_src.shape
+        (nsx, nsy) = self.X_src.shape
         n_src = nsy * nsx  # total number of sources
 
-        self.b_interp_pot_matrix = np.zeros((self.space_X.shape[0], self.space_X.shape[1], n_src))
+        self.b_interp_pot_matrix = np.zeros((ngx, ngy, n_src))
     
         for src in xrange(0, n_src): 
             #getting the coordinates of the i-th source
@@ -493,7 +491,8 @@ class KCSD2D(object):
         for i, lambd in enumerate(lambdas):
             for j in xrange(n_iter):
                 errors_iter[j] = cv.cross_validation(lambd, self.sampled_pots, 
-                                                     self.k_pot, elec_pos.shape[0], n_folds)
+                                                     self.k_pot,
+                                                     elec_pos.shape[0], n_folds)
             errors[i] = np.mean(errors_iter)
         return lambdas[errors == min(errors)][0]
 

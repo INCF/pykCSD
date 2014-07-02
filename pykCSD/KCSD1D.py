@@ -202,10 +202,10 @@ class KCSD1D(object):
             for elec_ind, elec_pos in enumerate(self.elec_pos):
                 r = abs(src_pos - elec_pos)
             
-                dist_table_ind = uint16(r * float(self.dist_density)/self.dist_max)
-                #print dist_table_ind
-                self.b_pot_matrix[src_ind, elec_ind] = self.dist_table[dist_table_ind]   
-        #return b_pot_matrix
+                dt_ind = uint16(np.round(r * float(self.dist_density)/self.dist_max))
+                #print dt_ind
+                self.b_pot_matrix[src_ind, elec_ind] = self.dist_table[dt_ind]   
+
   
 
     def calculate_b_src_matrix(self):
