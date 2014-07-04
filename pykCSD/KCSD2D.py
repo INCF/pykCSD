@@ -26,7 +26,7 @@ class KCSD2D(object):
             'n_sources' -- number of sources
             'source_type' -- basis function type ('gaussian', 'step')
             'h' -- thickness of the basis element
-            'R' -- cylinder radius
+            'R' -- 
             'x_min', 'x_max', 'y_min', 'y_max' -- boundaries for CSD estimation space
             'cross_validation' -- type of index generator 
             'lambda' -- regularization parameter for ridge regression
@@ -306,6 +306,8 @@ class KCSD2D(object):
         """
         pot, err = integrate.dblquad(KCSD2D.int_pot, -R, R, lambda x:-R, lambda x:R, 
                                      args=(x,R,h,src_type), epsrel=1e0, epsabs=1e0)
+        #pot, err = integrate.nquad(KCSD2D.int_pot, [[-R, R], [-R, R]], 
+        #                           args=(x,R,h,src_type), )
         #print err
         pot *= 1./(2.0*pi*sigma)
         return pot
@@ -412,10 +414,9 @@ class KCSD2D(object):
         """
         R2 = self.R**2
     
-        nsx, nsy = self.X_src.shape
+        (nsx, nsy) = self.X_src.shape
         n = nsy * nsx  #total number of sources    
-        ngx, ngy = self.space_X.shape
-    
+        (ngx, ngy) = self.space_X.shape
         ng = ngx * ngy
 
         self.b_src_matrix = np.zeros((self.space_X.shape[0], self.space_X.shape[1], n))
@@ -427,7 +428,7 @@ class KCSD2D(object):
             x_src = self.X_src[i_x, i_y]
         
             if self.source_type == 'step':
-                self.b_src_matrix[:,:,i]= ( (self.space_X-x_src)**2 + (self.space_Y-y_src)**2 <= R2)
+                self.b_src_matrix[:,:,i]= ( (self.space_X - x_src)**2 + (self.space_Y - y_src)**2 <= R2)
             elif self.source_type == 'gaussian':
                 self.b_src_matrix[:,:,i] = KCSD2D.gauss_rescale(self.space_X, self.space_Y, [x_src,y_src], self.R)
             elif self.source_type == 'gauss_lim':
@@ -464,15 +465,14 @@ class KCSD2D(object):
 
         (ngx, ngy) = self.space_X.shape
         ng = ngx * ngy
-
         (nsx, nsy) = self.X_src.shape
-        n_src = nsy * nsx  # total number of sources
+        n_src = nsy * nsx
 
         self.b_interp_pot_matrix = np.zeros((ngx, ngy, n_src))
     
         for src in xrange(0, n_src): 
             #getting the coordinates of the i-th source
-            i_x, i_y = np.unravel_index(src, (nsx,nsy), order='F')
+            (i_x, i_y) = np.unravel_index(src, (nsx,nsy), order='F')
             y_src = self.Y_src[i_x, i_y]
             x_src = self.X_src[i_x, i_y]       
         

@@ -53,13 +53,9 @@ class KCSD1D(object):
         self.R = params.get('R', 1.0)
         self.h = params.get('h', abs(self.elec_pos[1] - self.elec_pos[0]))
 
-        if 'source_type' in params:
-            if params['source_type'] in ["gaussian", "step"]:
-                self.source_type = params['source_type']
-            else:
-                raise Exception("Incorrect source type!")
-        else:    
-            self.source_type = "gaussian"
+        self.source_type = params.get('source_type', 'gaussian')
+        if self.source_type not in ["gaussian", "step"]:
+            raise Exception("Incorrect source type!")
 
         self.lambdas = np.array([1.0 / 2**n for n in xrange(0, 20)])
         self.source_positions = np.linspace(self.xmin, self.xmax, self.n_sources)
