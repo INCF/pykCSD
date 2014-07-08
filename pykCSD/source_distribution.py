@@ -15,7 +15,7 @@ def get_src_params_2D(Lx, Ly, n_src):
     nx,ny     - number of sources in directions x,y
     ds        - spacing between the sources
     """
-    coeff = [Ly, Lx - Ly, -Lx * n_src];
+    coeff = [Ly, Lx - Ly, -Lx * n_src]
 
     rts = np.roots(coeff)
     r = [r for r in rts if type(r) is not complex and r > 0]
@@ -34,7 +34,7 @@ def get_src_params_2D(Lx, Ly, n_src):
 
 
 def make_src_2D(X, Y, n_src, ext_x, ext_y, R_init):
-    """                               
+    """
     INPUT
     X,Y                 - Points at which CSD will be estimated
     n_src               - number of sources we want to include in the model
@@ -44,12 +44,12 @@ def make_src_2D(X, Y, n_src, ext_x, ext_y, R_init):
     OUTPUT
     X_src,Y_src       - Positions of the sources
     nx,ny             - number of sources in directions x,y,z
-    R                 - effective radius of the basis element 
+    R                 - effective radius of the basis element
     """
     Lx = np.max(X) - np.min(X)
     Ly = np.max(Y) - np.min(Y)
 
-    Lx_n = Lx + 2*ext_x 
+    Lx_n = Lx + 2*ext_x
     Ly_n = Ly + 2*ext_y
 
     [nx, ny, Lx_nn, Ly_nn, ds] = get_src_params_2D(Lx_n, Ly_n, n_src)
@@ -57,14 +57,13 @@ def make_src_2D(X, Y, n_src, ext_x, ext_y, R_init):
     ext_x_n = (Lx_nn - Lx)/2
     ext_y_n = (Ly_nn - Ly)/2
 
-    X_src, Y_src = np.meshgrid(np.linspace(-ext_x_n, Lx+ext_x_n, (Lx+2*ext_x_n)/ds + 1), 
-                               np.linspace(-ext_y_n, Ly+ext_y_n, (Lx+2*ext_y_n)/ds + 1))
+    X_src, Y_src = np.meshgrid(np.linspace(-ext_x_n, Lx+ext_x_n, nx),
+                               np.linspace(-ext_y_n, Ly+ext_y_n, ny))
 
     d = np.round(R_init/ds)
     R = d * ds
 
     return X_src, Y_src, R
-
 
 
 def get_src_params_3D(Lx, Ly, Lz, n_src):
@@ -97,9 +96,8 @@ def get_src_params_3D(Lx, Ly, Lz, n_src):
     return (nx, ny, nz,  Lx_n, Ly_n, Lz_n, ds)
 
 
-
 def make_src_3D(X, Y, Z, n_src, ext_x, ext_y, ext_z, R_init):
-    """                               
+    """
     INPUT
     X,Y,Z                 - Points at which CSD will be estimated
     n_src               - number of sources we want to include in the model
@@ -109,25 +107,26 @@ def make_src_3D(X, Y, Z, n_src, ext_x, ext_y, ext_z, R_init):
     OUTPUT
     X_src, Y_src, Z_src       - Positions of the sources
     nx,ny,nz             - number of sources in directions x,y,z
-    R                 - effective radius of the basis element 
+    R                 - effective radius of the basis element
     """
     Lx = np.max(X) - np.min(X)
     Ly = np.max(Y) - np.min(Y)
     Lz = np.max(Z) - np.min(Z)
 
-    Lx_n = Lx + 2*ext_x 
+    Lx_n = Lx + 2*ext_x
     Ly_n = Ly + 2*ext_y
     Lz_n = Lz + 2*ext_z
 
-    (nx, ny, nz, Lx_nn, Ly_nn, Lz_nn, ds) = get_src_params_3D(Lx_n, Ly_n, Lz_n, n_src)
+    (nx, ny, nz, Lx_nn, Ly_nn, Lz_nn, ds) = get_src_params_3D(Lx_n, Ly_n, Lz_n,
+                                                              n_src)
 
     ext_x_n = (Lx_nn - Lx)/2
     ext_y_n = (Ly_nn - Ly)/2
     ext_z_n = (Lz_nn - Lz)/2
 
-    X_src, Y_src, Z_src = np.meshgrid(np.linspace(-ext_x_n, Lx+ext_x_n, (Lx+2*ext_x_n)/ds + 1), 
-                                      np.linspace(-ext_y_n, Ly+ext_y_n, (Ly+2*ext_y_n)/ds + 1),
-                                      np.linspace(-ext_z_n, Lz+ext_z_n, (Lz+2*ext_z_n)/ds + 1))
+    (X_src, Y_src, Z_src) = np.meshgrid(np.linspace(-ext_x_n, Lx+ext_x_n, nx),
+                                        np.linspace(-ext_y_n, Ly+ext_y_n, ny),
+                                        np.linspace(-ext_z_n, Lz+ext_z_n, nz))
 
     d = np.round(R_init/ds)
     R = d * ds
