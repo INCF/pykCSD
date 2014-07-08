@@ -4,7 +4,7 @@ Usage
 
 To use pykCSD in a project::
 
-	import pykCSD.pykCSD import KCSD
+	from pykCSD.pykCSD import KCSD
 	import numpy as np
 	
 	elec_pos = np.array([[0, 0], [0, 1], [1, 0], [1,1], [0.5, 0.5]])

@@ -9,7 +9,7 @@ class KCSD(object):
     Main class for instantiating a Kernel Current Source Density Solver.
     """
 
-    def __init__(self, elec_pos, sampled_pots, params=[]):
+    def __init__(self, elec_pos, sampled_pots, params={}):
         """
         Optional parameters:
         'source_radius' -- radius of a base element,

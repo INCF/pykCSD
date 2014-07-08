@@ -15,6 +15,7 @@ from pylab import *
 from numpy.linalg import norm
 from pykCSD.pykCSD import KCSD1D
 from pykCSD.pykCSD import KCSD2D
+from pykCSD import potentials as pt
 
 
 class TestKCSD1D(unittest.TestCase):
@@ -35,14 +36,14 @@ class TestKCSD1D(unittest.TestCase):
         sigmas = params[5]
 
         for i, expected_result in enumerate(expected_results):
-            kcsd_result = KCSD1D.int_pot(src=srcs[i], arg=args[i], current_pos=curr_pos[i],
-                                            h=hs[i], R=Rs[i], sigma=sigmas[i], src_type='gaussian')
+            kcsd_result = pt.int_pot(src=srcs[i], arg=args[i], current_pos=curr_pos[i],
+                                            h=hs[i], R=Rs[i], sigma=sigmas[i], src_type='gauss_lim')
             self.assertAlmostEqual(expected_result, kcsd_result, places=3)
 
     def test_KCSD1D_pot_estimation_two_electrodes(self):
         """pykCSD calculated pots should be almost equal to kCSD1d (matlab) calculated pots"""
 
-        params = {'x_min': 0.0, 'x_max': 1.0, 'dist_density': 11}
+        params = {'x_min': 0.0, 'x_max': 1.0, 'dist_density': 11, 'source_type': 'gauss_lim'}
         k = KCSD1D(elec_pos=np.array([0.2, 0.7]),
                    sampled_pots=np.array([1.0, 0.5]),
                    params=params)
@@ -56,7 +57,7 @@ class TestKCSD1D(unittest.TestCase):
     def test_KCSD1D_csd_estimation_two_electrodes(self):
         """pykCSD calculated CSD should be almost equal to kCSD1d (matlab) calculated CSD"""
 
-        params = {'x_min': 0.0, 'x_max': 1.0, 'dist_density': 11}
+        params = {'x_min': 0.0, 'x_max': 1.0, 'dist_density': 11, 'source_type': 'gauss_lim'}
         k = KCSD1D(elec_pos=np.array([0.2, 0.7]),
                    sampled_pots=np.array([1.0, 0.5]),
                    params=params)
@@ -70,7 +71,7 @@ class TestKCSD1D(unittest.TestCase):
     def test_KCSD1D_cross_validation_two_electrodes(self):
         """cross validation should promote high lambdas in this case"""
 
-        params = {'x_min': 0.0, 'x_max': 1.0, 'dist_density': 11}
+        params = {'x_min': 0.0, 'x_max': 1.0, 'dist_density': 11, 'source_type': 'gauss_lim'}
         k = KCSD1D(elec_pos=np.array([0.2, 0.7]),
                    sampled_pots=np.array([1.0, 0.5]),
                    params=params)
@@ -83,7 +84,7 @@ class TestKCSD1D(unittest.TestCase):
     def test_KCSD1D_zero_pot(self):
         """if measured potential is 0, the calculated potential should be 0"""
 
-        params = {'n_sources': 20, 'dist_density': 20}
+        params = {'n_sources': 20, 'dist_density': 20, 'source_type': 'gauss_lim'}
         k_zero = KCSD1D(elec_pos=[1.0, 2.0, 3.0, 4.0, 5.0],
                         sampled_pots=[0.0, 0.0, 0.0, 0.0, 0.0],
                         params=params)
@@ -94,7 +95,7 @@ class TestKCSD1D(unittest.TestCase):
     def test_KCSD1D_zero_csd(self):
         """if measured potential is 0, the calculated CSD should be 0"""
 
-        params = {'n_sources': 20, 'dist_density': 20}
+        params = {'n_sources': 20, 'dist_density': 20, 'source_type': 'gauss_lim'}
         k_zero = KCSD1D(elec_pos=[1.0, 2.0, 3.0, 4.0, 5.0],
                         sampled_pots=[0.0, 0.0, 0.0, 0.0, 0.0],
                         params=params)

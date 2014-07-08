@@ -2,12 +2,15 @@
 import numpy as np
 from numpy import pi, uint16
 from numpy import dot, transpose, identity
+from numpy.linalg import norm
 from matplotlib import pylab as plt
 from scipy.interpolate import interp1d
 from scipy import integrate
-from numpy.linalg import norm
-import cross_validation as cv
+import scipy.spatial.distance as distance 
 
+import cross_validation as cv
+import basis_functions as bf
+import source_distribution as sd
 
 class KCSD2D(object):
     """
@@ -53,7 +56,7 @@ class KCSD2D(object):
         self.ymax = params.get('y_max', np.max(self.elec_pos[:,1]))
         self.ymin = params.get('y_min', np.min(self.elec_pos[:,1]))
         self.lambd = params.get('lambda', 0.0)
-        self.R_init = params.get('R_init', 2*KCSD2D.calc_min_dist(self.elec_pos))
+        self.R_init = params.get('R_init', 2*distance.pdist(self.elec_pos).min())
         self.h = params.get('h', 1.0)
         self.ext_x = params.get('ext_x', 0.0)
         self.ext_y = params.get('ext_y', 0.0)
@@ -72,12 +75,12 @@ class KCSD2D(object):
         lin_y = np.linspace(self.ymin, self.ymax, (self.ymax - self.ymin)/self.dy +1 )
         self.space_X, self.space_Y = np.meshgrid(lin_x, lin_y)
 
-        [self.X_src, self.Y_src, _, _, self.R] = KCSD2D.make_src_2D(self.space_X, self.space_Y, self.n_sources, 
-                                                                    self.ext_x, self.ext_x, self.R_init)
+        (self.X_src, self.Y_src, self.R) = sd.make_src_2D(self.space_X, self.space_Y, self.n_sources, 
+                                                          self.ext_x, self.ext_x, self.R_init)
         
         Lx = np.max(self.X_src) - np.min(self.X_src) + self.R
         Ly = np.max(self.Y_src) - np.min(self.Y_src) + self.R
-        self.dist_max = np.sqrt(Lx**2 + Ly**2)
+        self.dist_max = (Lx**2 + Ly**2)**0.5
 
     def estimate_pots(self):
         """Calculates Local Field Potentials."""
@@ -125,7 +128,7 @@ class KCSD2D(object):
     def plot_all(self):
         extent = [self.xmin, self.xmax, self.ymin, self.ymax]
 
-        fig, (ax11, ax21, ax22) = plt.subplots(1, 3)
+        fig, (ax11, ax12, ax13) = plt.subplots(1, 3)
         
         ax11.set_xlim([extent[0], extent[1]])
         ax11.set_ylim([extent[2], extent[3]])
@@ -133,15 +136,15 @@ class KCSD2D(object):
                      c=self.sampled_pots, s=200, marker='s')
         ax11.set_title('Measured potentials')
 
-        ax21.imshow(self.estimated_pots.T, interpolation='none', 
+        ax12.imshow(self.estimated_pots.T, interpolation='none', 
                     extent=extent, aspect="auto", origin='lower')
-        ax21.set_title('Calculated potentials')
-        ax21.autoscale_view(True,True,True)
+        ax12.set_title('Calculated potentials')
+        ax12.autoscale_view(True,True,True)
 
-        ax22.imshow(self.estimated_csd.T, interpolation='none', 
+        ax13.imshow(self.estimated_csd.T, interpolation='none', 
                     extent=extent, aspect="auto", origin='lower')
-        ax22.set_title('Calculated CSD')
-        ax22.autoscale_view(True,True,True)
+        ax13.set_title('Calculated CSD')
+        ax13.autoscale_view(True,True,True)
         
         plt.show()
 
@@ -163,82 +166,6 @@ class KCSD2D(object):
         
         self.calculate_b_interp_pot_matrix()
         self.interp_pot = dot(self.b_interp_pot_matrix, self.b_pot_matrix)
-        
-
-    @staticmethod
-    def calc_min_dist(elec_pos):
-        n = elec_pos.shape[0]
-        min_dist = norm(elec_pos[0, :] - elec_pos[1, :])
-        for i in xrange(0, n):
-            for j in xrange(0, n):
-                dist = norm(elec_pos[i, :] - elec_pos[j, :])
-                if dist < min_dist and i!=j:
-                    min_dist = norm(elec_pos[i, :] - elec_pos[j, :])
-        return min_dist
-
-    @staticmethod
-    def get_src_params_2D(Lx, Ly, n_src):
-        """
-        helps uniformally distribute n_src sources among an area of size Lx x Ly
-
-        INPUT
-        Lx,Ly     - lengths in the directions x,y of the area, ...
-                 the sources should be placed
-        n_src     - number of sources
-
-        OUTPUT
-        nx,ny     - number of sources in directions x,y
-        ds        - spacing between the sources
-        """
-        coeff = [Ly, Lx - Ly, -Lx * n_src];
-
-        rts = np.roots(coeff)
-        r = [r for r in rts if type(r) is not complex and r > 0]
-        nx = r[0]
-        ny = n_src/nx
-
-        ds = Lx/(nx-1)
-
-        nx = np.floor(nx) + 1
-        ny = np.floor(ny) + 1
-
-        Lx_n = (nx - 1) * ds
-        Ly_n = (ny - 1) * ds
-
-        return (nx, ny, Lx_n, Ly_n, ds)
-
-    @staticmethod
-    def make_src_2D(X, Y, n_src, ext_x, ext_y, R_init):
-        """                               
-        INPUT
-        X,Y                 - Points at which CSD will be estimated
-        n_src               - number of sources we want to include in the model
-        ext_x,ext_y,        - how should the sources extend the area X,Y,Z
-        R_init              - demanded radius of the basis element
-
-        OUTPUT
-        X_src,Y_src       - Positions of the sources
-        nx,ny             - number of sources in directions x,y,z
-        R                 - effective radius of the basis element 
-        """
-        Lx = np.max(X) - np.min(X)
-        Ly = np.max(Y) - np.min(Y)
-
-        Lx_n = Lx + 2*ext_x 
-        Ly_n = Ly + 2*ext_y
-
-        [nx, ny, Lx_nn, Ly_nn, ds] = KCSD2D.get_src_params_2D(Lx_n, Ly_n, n_src)
-
-        ext_x_n = (Lx_nn - Lx)/2
-        ext_y_n = (Ly_nn - Ly)/2
-
-        X_src, Y_src = np.meshgrid(np.linspace(-ext_x_n, Lx+ext_x_n, (Lx+2*ext_x_n)/ds + 1), 
-                                   np.linspace(-ext_y_n, Ly+ext_y_n, (Lx+2*ext_y_n)/ds + 1))
-    
-        d = np.round(R_init/ds)
-        R = d * ds
-
-        return X_src, Y_src, nx, ny, R
 
 
     @staticmethod
@@ -258,45 +185,17 @@ class KCSD2D(object):
                 - , integrated over xp,yp gives the potential generated by a 
                 - basis source element centered at (0,0) at point (x,0)  
         """
-        y = np.sqrt((x-xp)**2 + yp**2)
+        y = ((x-xp)**2 + yp**2)**(0.5)
         if y < 0.00001:
             y = 0.00001
         y = np.arcsinh(h/y)
         if src_type == 'step':
-            y *= KCSD2D.step_rescale(xp, yp, R)
+            y *= bf.step_rescale_2D(xp, yp, R)
         elif src_type == 'gaussian':
-            y *= KCSD2D.gauss_rescale(xp, yp, [0,0], R)
+            y *= bf.gauss_rescale_2D(xp, yp, [0,0], R)
         elif src_type == 'gauss_lim':
-            y *= gauss_rescale_lim(xp, yp, [0,0], R)
+            y *= bf.gauss_rescale_2D_lim(xp, yp, [0,0], R)
         return y
-
-    @staticmethod
-    def gauss_rescale(x, y, mu, three_stdev):
-        """
-        Returns normalized gaussian 2D scale function 
-
-        x, y        -- coordinates a point at which we calculate the density 
-        mu          -- distribution mean vector
-        three_stdev -- 3 * standard deviation of the distribution
-        """
-        h = 1./(2*pi)
-        stdev = three_stdev/3.0
-        inv_std = 1.0/stdev
-        h_n = h * stdev/1
-        Z = h_n * np.exp ( -inv_std**2 * 0.5 * ((x - mu[0])**2 + (y - mu[1])**2) )
-        return Z
-
-    @staticmethod
-    def step_rescale(xp, yp, R):
-        """
-        Returns normalized 2D step function
-        """
-        s = (xp**2 + yp**2 <= R**2)
-        return s
-
-    @staticmethod
-    def gauss_rescale_lim():
-        pass
 
     @staticmethod
     def b_pot_2d_cont(x, R, h, sigma, src_type):
@@ -306,9 +205,6 @@ class KCSD2D(object):
         """
         pot, err = integrate.dblquad(KCSD2D.int_pot, -R, R, lambda x:-R, lambda x:R, 
                                      args=(x,R,h,src_type), epsrel=1e0, epsabs=1e0)
-        #pot, err = integrate.nquad(KCSD2D.int_pot, [[-R, R], [-R, R]], 
-        #                           args=(x,R,h,src_type), )
-        #print err
         pot *= 1./(2.0*pi*sigma)
         return pot
 
@@ -378,7 +274,7 @@ class KCSD2D(object):
  
         Lx = np.max(self.X_src) - np.min(self.X_src) + self.R
         Ly = np.max(self.Y_src) - np.min(self.Y_src) + self.R
-        dist_max = np.sqrt(Lx**2 + Ly**2)
+        dist_max = (Lx**2 + Ly**2)**0.5
     
         dt_len = len(self.dist_table)
     
@@ -392,9 +288,8 @@ class KCSD2D(object):
             for j in xrange(0, n_obs): 
                 # for all the observation points
                 # checking the distance between the observation point and the source,
-                # calculating the base value            
-                arg = np.array([self.elec_pos[j,0], self.elec_pos[j,1]])
-                dist = norm(arg - src)
+                # calculating the base value
+                dist = norm(self.elec_pos[j] - src)
       
                 ind = np.minimum( uint16(np.round(dt_len * dist/dist_max)), dt_len-1)
 
@@ -428,11 +323,11 @@ class KCSD2D(object):
             x_src = self.X_src[i_x, i_y]
         
             if self.source_type == 'step':
-                self.b_src_matrix[:,:,i]= ( (self.space_X - x_src)**2 + (self.space_Y - y_src)**2 <= R2)
+                self.b_src_matrix[:,:,i]= bf.step_rescale_2D((self.space_X - x_src), (self.space_Y - y_src), R2)
             elif self.source_type == 'gaussian':
-                self.b_src_matrix[:,:,i] = KCSD2D.gauss_rescale(self.space_X, self.space_Y, [x_src,y_src], self.R)
+                self.b_src_matrix[:,:,i] = bf.gauss_rescale_2D(self.space_X, self.space_Y, [x_src,y_src], self.R)
             elif self.source_type == 'gauss_lim':
-                self.b_src_matrix[:,:,i] = KCSD2D.gauss_rescale_lim(self.space_X, self.space_Y, [x_src,y_src], self.R)            
+                self.b_src_matrix[:,:,i] = bf.gauss_rescale_2D_lim(self.space_X, self.space_Y, [x_src,y_src], self.R)            
 
         self.b_src_matrix = self.b_src_matrix.reshape(ng,n)
 

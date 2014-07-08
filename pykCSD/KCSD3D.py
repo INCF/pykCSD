@@ -2,13 +2,16 @@
 import numpy as np
 from numpy import pi, uint16
 from numpy import dot, transpose, identity
+from numpy.linalg import norm
 from matplotlib import pylab as plt
 from mpl_toolkits.mplot3d import Axes3D
 from scipy.interpolate import interp1d
 from scipy import integrate
-from numpy.linalg import norm
-import cross_validation as cv
+import scipy.spatial.distance as distance 
 
+import cross_validation as cv
+import basis_functions as bf
+import source_distribution as sd
 
 class KCSD3D(object):
     """
@@ -53,19 +56,19 @@ class KCSD3D(object):
         self.zmin = params.get('z_min', np.min(self.elec_pos[:,2]))
 
         self.lambd = params.get('lambda', 0.0)
-        self.R_init = params.get('R_init', 2*KCSD3D.calc_min_dist(self.elec_pos))
+        self.R_init = params.get('R_init', 2*distance.pdist(self.elec_pos).min())
         self.h = params.get('h', 1.0)
         self.ext_X = params.get('ext_X', 0.0)
         self.ext_Y = params.get('ext_Y', 0.0)
         self.ext_Z = params.get('ext_Z', 0.0)
 
-        self.gdX = params.get('gdX', 0.01*(self.xmax - self.xmin))
-        self.gdY = params.get('gdY', 0.01*(self.ymax - self.ymin))
-        self.gdZ = params.get('gdZ', 0.01*(self.zmax - self.zmin))
+        self.gdX = params.get('gdX', 0.05*(self.xmax - self.xmin))
+        self.gdY = params.get('gdY', 0.05*(self.ymax - self.ymin))
+        self.gdZ = params.get('gdZ', 0.05*(self.zmax - self.zmin))
         self.__dist_table_density = 100
 
         self.source_type = params.get('source_type', 'gaussian')
-        if self.source_type not in ["gaussian", "step"]:
+        if self.source_type not in ["gaussian", "step", "gauss_lim"]:
             raise Exception("Incorrect source type!")
 
         self.lambdas = np.array([1.0 / 2**n for n in xrange(0, 20)])
@@ -75,15 +78,15 @@ class KCSD3D(object):
         lin_z = np.linspace(self.zmin, self.ymax, (self.zmax - self.zmin)/self.gdZ +1 )
         self.space_X, self.space_Y, self.space_Z = np.meshgrid(lin_x, lin_y, lin_z)
 
-        [self.X_src, self.Y_src, self.Z_src, _, _, _, self.R] = KCSD3D.make_src_3D(self.space_X, self.space_Y, self.space_Z,
-                                                                            self.n_sources,
-                                                                            self.ext_X, self.ext_Y, self.ext_Z, 
-                                                                            self.R_init)
+        (self.X_src, self.Y_src, self.Z_src, self.R) = sd.make_src_3D(self.space_X, self.space_Y, self.space_Z,
+                                                                      self.n_sources,
+                                                                      self.ext_X, self.ext_Y, self.ext_Z, 
+                                                                      self.R_init)
         
         Lx = np.max(self.X_src) - np.min(self.X_src) + self.R
         Ly = np.max(self.Y_src) - np.min(self.Y_src) + self.R
         Lz = np.max(self.Z_src) - np.min(self.Z_src) + self.R
-        self.dist_max = np.sqrt(Lx**2 + Ly**2 + Lz**2)
+        self.dist_max = (Lx**2 + Ly**2 + Lz**2)**0.5
 
     def estimate_pots(self):
         """Calculates Local Field Potentials."""
@@ -135,7 +138,7 @@ class KCSD3D(object):
         
         ax11 = fig.add_subplot(2,3,1, projection='3d')
         
-        ax11.set_title('Measurement places')
+        ax11.set_title('Electrode setup')
 
         ax11.scatter(self.elec_pos[:,0], self.elec_pos[:,1], self.elec_pos[:,2])
 
@@ -143,25 +146,25 @@ class KCSD3D(object):
         ax12 = fig.add_subplot(2,3,2)
         ax12.imshow(self.estimated_pots[0,:,:].T, interpolation='none', 
                     extent=extent, aspect="auto", origin='lower')
-        ax12.set_title('Calculated potentials [0]')
+        ax12.set_title('Calculated potentials [0-axis]')
         ax12.autoscale_view(True,True,True)
 
         ax13 = fig.add_subplot(2,3,3)
-        ax13.imshow(self.estimated_pots[5,:,:].T, interpolation='none', 
+        ax13.imshow(self.estimated_pots[:,0,:].T, interpolation='none', 
                     extent=extent, aspect="auto", origin='lower')
-        ax13.set_title('Calculated potentials [5]')
+        ax13.set_title('Calculated potentials [1-axis]')
         ax13.autoscale_view(True,True,True)
 
         ax22 = fig.add_subplot(2,3,5)
         ax22.imshow(self.estimated_csd[0,:,:].T, interpolation='none', 
                     extent=extent, aspect="auto", origin='lower')
-        ax22.set_title('Calculated CSD [0]')
+        ax22.set_title('Calculated CSD [0-axis]')
         ax22.autoscale_view(True,True,True)
 
         ax23 = fig.add_subplot(2,3,6)
-        ax23.imshow(self.estimated_csd[5,:,:].T, interpolation='none', 
+        ax23.imshow(self.estimated_csd[:,0,:].T, interpolation='none', 
                     extent=extent, aspect="auto", origin='lower')
-        ax23.set_title('Calculated CSD [5]')
+        ax23.set_title('Calculated CSD [1-axis]')
         ax23.autoscale_view(True,True,True)
         
         plt.show()
@@ -172,7 +175,7 @@ class KCSD3D(object):
 
     def calculate_matrices(self):
         """
-        Prepares all the required matrices to calculate kCSD.
+        Prepares all the required matrices to calculate CSD and potentials.
         """
         self.create_dist_table()
 
@@ -184,139 +187,36 @@ class KCSD3D(object):
         
         self.calculate_b_interp_pot_matrix()
         self.interp_pot = dot(self.b_interp_pot_matrix, self.b_pot_matrix)
-        
-
-    @staticmethod
-    def calc_min_dist(elec_pos):
-        n = elec_pos.shape[0]
-        min_dist = norm(elec_pos[0, :] - elec_pos[1, :])
-        for i in xrange(0, n):
-            for j in xrange(0, n):
-                dist = norm(elec_pos[i, :] - elec_pos[j, :])
-                if dist < min_dist and i!=j:
-                    min_dist = norm(elec_pos[i, :] - elec_pos[j, :])
-        return min_dist
-
-    @staticmethod
-    def get_src_params_3D(Lx, Ly, Lz, n_src):
-        """
-        helps uniformally distribute n_src sources among an area of size Lx x Ly x Lz
-
-        INPUT
-        Lx,Ly,Lz    - lengths in the directions x,y of the area, ...
-                 the sources should be placed
-        n_src     - number of sources
-
-        OUTPUT
-        nx,ny,nz     - number of sources in directions x,y
-        ds        - spacing between the sources
-        """
-        V = Lx*Ly*Lz
-        V_unit = V/n_src
-
-        nx = np.floor(Lx*V_unit**(-1./3)) + 1
-        ny = np.floor(Ly*V_unit**(-1./3)) + 1
-        nz = np.floor(Lz*V_unit**(-1./3)) + 1
-    
-        ds = Lx/(nx-1)
-    
-        Lx_n = (nx-1)*ds
-        Ly_n = (ny-1)*ds
-        Lz_n = (nz-1)*ds
-    
-        return (nx, ny, nz,  Lx_n, Ly_n, Lz_n, ds)
-
-    @staticmethod
-    def make_src_3D(X, Y, Z, n_src, ext_x, ext_y, ext_z, R_init):
-        """                               
-        INPUT
-        X,Y,Z                 - Points at which CSD will be estimated
-        n_src               - number of sources we want to include in the model
-        ext_x,ext_y,ext_z        - how should the sources extend the area X,Y,Z
-        R_init              - demanded radius of the basis element
-
-        OUTPUT
-        X_src, Y_src, Z_src       - Positions of the sources
-        nx,ny,nz             - number of sources in directions x,y,z
-        R                 - effective radius of the basis element 
-        """
-        Lx = np.max(X) - np.min(X)
-        Ly = np.max(Y) - np.min(Y)
-        Lz = np.max(Z) - np.min(Z)
-
-        Lx_n = Lx + 2*ext_x 
-        Ly_n = Ly + 2*ext_y
-        Lz_n = Lz + 2*ext_z
-
-        (nx, ny, nz, Lx_nn, Ly_nn, Lz_nn, ds) = KCSD3D.get_src_params_3D(Lx_n, Ly_n, Lz_n, n_src)
-
-        ext_x_n = (Lx_nn - Lx)/2
-        ext_y_n = (Ly_nn - Ly)/2
-        ext_z_n = (Lz_nn - Lz)/2
-
-        X_src, Y_src, Z_src = np.meshgrid(np.linspace(-ext_x_n, Lx+ext_x_n, (Lx+2*ext_x_n)/ds + 1), 
-                                          np.linspace(-ext_y_n, Ly+ext_y_n, (Ly+2*ext_y_n)/ds + 1),
-                                          np.linspace(-ext_z_n, Lz+ext_z_n, (Lz+2*ext_z_n)/ds + 1))
-
-        d = np.round(R_init/ds)
-        R = d * ds
-
-        return X_src, Y_src, Z_src, nx, ny, nz, R
 
 
     @staticmethod
     def int_pot(xp, yp, zp, x, R, h, src_type):
         """INPUT
         xp,yp,zp    - coordinates of some point laying in the support of a 
-               - basis element centered at (0,0,0)
-        x,y        - coordinates of a point (x,0,0) at which we calculate the
-             - potential
+                    basis element centered at (0,0,0)
+        x        - coordinates of a point (x,0,0) at which we calculate the
+                    potential
         R        - radius of the basis element
         h
         src_type - type of basis function in the source space
-               (step/gauss/gauss_lim)
+                    (step/gauss/gauss_lim)
         OUTPUT
         int_pot - contribution of a point xp,yp,zp belonging to a basis source
-                - support centered at (0,0,0) to the potential measured at (x,0,0)
-                - integrated over xp, yp, zp gives the potential generated by a 
-                - basis source element centered at (0,0,0) at point (x,0,0)  
+                support centered at (0,0,0) to the potential measured at (x,0,0)
+                integrated over xp, yp, zp gives the potential generated by a 
+                basis source element centered at (0,0,0) at point (x,0,0)  
         """
-        y = np.sqrt((x-xp)**2 + yp**2 + zp**2)
+        y = ((x-xp)**2 + yp**2 + zp**2)**0.5
         if y < 0.00001:
             y = 0.00001
         y = 1.0/y
         if src_type == 'step':
-            y *= KCSD3D.step_rescale(xp, yp, zp, R)
+            y *= bf.step_rescale_3D(xp, yp, zp, R)
         elif src_type == 'gaussian':
-            y *= KCSD3D.gauss_rescale_3D(xp, yp, zp, [0,0,0], R);
+            y *= bf.gauss_rescale_3D(xp, yp, zp, [0,0,0], R)
         elif src_type == 'gauss_lim':
-            y *= gauss_rescale_lim(xp, yp, [0,0,0], R);
+            y *= bf.gauss_rescale_lim_3D(xp, yp, [0,0,0], R)
         return y
-
-    @staticmethod
-    def gauss_rescale_3D(x, y, z, mu, three_stdev):
-        """
-        Returns normalized gaussian 2D scale function 
-
-        x, y        -- coordinates a point at which we calculate the density 
-        mu          -- distribution mean vector
-        three_stdev -- 3 * standard deviation of the distribution
-        """
-        h = 1./(2*pi)
-        stdev = three_stdev/3.0
-        inv_std = 1.0/stdev
-        h_n = h * stdev/1
-        Z = h_n * np.exp ( -inv_std**2 * 0.5 * ((x - mu[0])**2 + (y - mu[1])**2 + (z - mu[2])**2 ) )
-        return Z
-
-
-    @staticmethod
-    def step_rescale(xp, yp, zp, R):
-        """
-        Returns normalized 3D step function
-        """
-        s = (xp**2 + yp**2 + zp**2 <= R**2)
-        return s
 
     @staticmethod
     def b_pot_3d_cont(x, R, h, sigma, src_type):
@@ -324,12 +224,11 @@ class KCSD3D(object):
         Returns the value of the potential at point (x,y,0) generated
         by a basis source located at (0,0,0)
         """
-        #pot, err = integrate.nquad(int_pot, [[-R, R],[-R,R], [-R, R]], args=(x,R,h,src_type))
+        #pot, err = integrate.nquad(KCSD3D.int_pot, [[-R, R],[-R,R], [-R, R]], args=(x,R,h,src_type))
         pot, err = integrate.tplquad(KCSD3D.int_pot, -R, R, 
                                      lambda x:-R, lambda x:R, 
                                      lambda x,y:-R, lambda x,y:R,
                                      args=(x,R,h,src_type))
-        #print err
         pot *= 1./(4.0*pi*sigma)
         return pot
 
@@ -359,11 +258,13 @@ class KCSD3D(object):
         xs = np.unique(np.array(xs))
 
         dist_table = np.zeros(len(xs))
+        print dist_table.shape
 
         for i, x in enumerate(xs):
             dist_table[i] = KCSD3D.b_pot_3d_cont((x/self.__dist_table_density) * self.dist_max,
                                                 self.R, self.h, self.sigma, self.source_type)
-        #print "dt: ", dist_table
+            print dist_table[i]
+
         inter = interp1d(x=xs, y=dist_table, kind='cubic', fill_value=0.0)
         dt_int = np.array([inter(xx) for xx in xrange(self.__dist_table_density)])
         dt_int.flatten()
@@ -378,11 +279,11 @@ class KCSD3D(object):
         self.calculate_b_pot_matrix_3D()
 
     def calculate_b_pot_matrix_3D(self):
-        """ INPUT 
+        """
         X,Y,Z        - grid of points at which we want to calculate CSD 
-        nsx,nsy,nsz    - number of base elements in the x and y direction 
+        nsx,nsy,nsz  - number of base elements in the x and y direction 
         dist_table - vector calculated with 'create_dist_table'
-        R -        - radius of the support of the basis functions
+        R          - radius of the support of the basis functions
     
         OUTPUT
         b_pot_matrix - matrix containing containing the values of all
@@ -396,7 +297,7 @@ class KCSD3D(object):
         Lx = np.max(self.X_src) - np.min(self.X_src) + self.R
         Ly = np.max(self.Y_src) - np.min(self.Y_src) + self.R
         Lz = np.max(self.Z_src) - np.min(self.Z_src) + self.R
-        dist_max = np.sqrt(Lx**2 + Ly**2 + Lz**2)
+        dist_max = (Lx**2 + Ly**2 + Lz**2)**0.5
     
         dt_len = len(self.dist_table)
     
@@ -404,15 +305,14 @@ class KCSD3D(object):
     
         for i in xrange(0, n):
             #finding the coordinates of the i-th source
-            i_x, i_y, i_z = np.unravel_index(i, (nx,ny,nz)) # ?? nx,ny,nz
+            i_x, i_y, i_z = np.unravel_index(i, (nx,ny,nz))
             src = [self.X_src[i_x, i_y, i_z], self.Y_src[i_x, i_y, i_z], self.Z_src[i_x, i_y, i_z]]
 
             for j in xrange(0, n_obs): 
                 # for all the observation points
                 # checking the distance between the observation point and the source,
                 # calculating the base value            
-                arg = np.array([self.elec_pos[j,0], self.elec_pos[j,1], self.elec_pos[j,2]])
-                dist = norm(arg - src)
+                dist = norm(self.elec_pos[j] - src)
       
                 ind = np.minimum( uint16(np.round(dt_len * dist/dist_max)), dt_len-1)
 
@@ -430,8 +330,6 @@ class KCSD3D(object):
         the source basis functions in all the points at which we want to 
         calculate the solution (essential for calculating the cross_matrix)
         """
-        R2 = self.R**2
-    
         (nsx, nsy, nsz) = self.X_src.shape
         n = nsy * nsx * nsz  #total number of sources    
         (ngx, ngy, ngz) = self.space_X.shape
@@ -447,11 +345,11 @@ class KCSD3D(object):
             x_src = self.X_src[i_x, i_y, i_z]
         
             if self.source_type == 'step':
-                self.b_src_matrix[:,:,:,i]= ( (self.space_X - x_src)**2 + (self.space_Y - y_src)**2 + (self.space_Z - z_src)**2 <= R2)
+                self.b_src_matrix[:,:,:,i] = bf.step_rescale_3D((self.space_X - x_src), (self.space_Y - y_src), (self.space_Z - z_src), self.R)
             elif self.source_type == 'gaussian':
-                self.b_src_matrix[:,:,:,i] = KCSD3D.gauss_rescale_3D(self.space_X, self.space_Y, self.space_Z,[x_src,y_src,z_src], self.R)
+                self.b_src_matrix[:,:,:,i] = bf.gauss_rescale_3D(self.space_X, self.space_Y, self.space_Z,[x_src,y_src,z_src], self.R)
             elif self.source_type == 'gauss_lim':
-                self.b_src_matrix[:,:,:,i] = KCSD3D.gauss_rescale_lim(self.space_X, self.space_Y, [x_src,y_src], self.R)            
+                self.b_src_matrix[:,:,:,i] = bf.gauss_rescale_lim(self.space_X, self.space_Y, [x_src,y_src], self.R)            
 
         self.b_src_matrix = self.b_src_matrix.reshape(ng,n)
 
@@ -480,7 +378,7 @@ class KCSD3D(object):
         Lx = np.max(self.X_src) - np.min(self.X_src) + self.R
         Ly = np.max(self.Y_src) - np.min(self.Y_src) + self.R
         Lz = np.max(self.Z_src) - np.min(self.Z_src) + self.R
-        dist_max = np.sqrt(Lx**2 + Ly**2 + Lz**2)
+        dist_max = (Lx**2 + Ly**2 + Lz**2)**0.5
 
         (ngx, ngy, ngz) = self.space_X.shape
         ng = ngx * ngy * ngz

@@ -2,10 +2,11 @@
 import numpy as np
 from numpy import pi, uint16
 from numpy import dot, transpose, identity
-from sklearn.cross_validation import KFold, LeaveOneOut, ShuffleSplit
 from matplotlib import pylab as plt
-import cross_validation as cv
 
+import cross_validation as cv
+import basis_functions as bf
+import potentials as pt
 
 class KCSD1D(object):
     """
@@ -54,7 +55,7 @@ class KCSD1D(object):
         self.h = params.get('h', abs(self.elec_pos[1] - self.elec_pos[0]))
 
         self.source_type = params.get('source_type', 'gaussian')
-        if self.source_type not in ["gaussian", "step"]:
+        if self.source_type not in ["gaussian", "step", "gauss_lim"]:
             raise Exception("Incorrect source type!")
 
         self.lambdas = np.array([1.0 / 2**n for n in xrange(0, 20)])
@@ -117,60 +118,14 @@ class KCSD1D(object):
         self.create_dist_table()
 
         self.calculate_b_pot_matrix()
-        self.k_pot = dot(transpose(self.b_pot_matrix), self.b_pot_matrix)
+        self.k_pot = dot(self.b_pot_matrix.T, self.b_pot_matrix)
 
         self.calculate_b_src_matrix()
         self.k_interp_cross = np.dot(self.b_src_matrix, self.b_pot_matrix)
 
         self.calculate_b_interp_pot_matrix()
-        self.interp_pot = dot(transpose(self.b_interp_pot_matrix), self.b_pot_matrix)
+        self.interp_pot = dot(self.b_interp_pot_matrix.T, self.b_pot_matrix)
 
-    @staticmethod
-    def int_pot(src, arg, current_pos, h, R, sigma, src_type):
-        """
-        Returns contribution of a single source as a function of distance
-        """
-        y = (1./(2 * sigma)) * (np.sqrt((arg - current_pos)**2 + R**2) - abs(arg - current_pos))
-        if src_type == "gaussian":
-            # for this formula look at formula (8) from Pettersen et al., 2006
-            y *= KCSD1D.gauss_rescale(src, current_pos, h)
-        if src_type == "step":
-            #TODO check/re-evaluate
-            y *= KCSD1D.step_rescale(src, current_pos, h)  
-        return y
-
-    @staticmethod
-    def gauss_rescale(x, mu, three_stdev):
-        """
-        Returns normalized gaussian scale function 
-
-        mu -- center of the distribution, 
-        three_stdev -- cut off distance from the center
-        """
-        variance = (three_stdev/3.0)**2
-        g = 1./np.sqrt(2. * pi * variance) * np.exp(-(1./(2.*variance)) * (x-mu)**2) * (abs(x - mu) < three_stdev)
-        return g
-
-    @staticmethod
-    def step_rescale(x, x0, width):
-        """
-        Returns normalized step function
-        """
-        s = 1.0/width * (abs(x - x0) < width)
-        return s
-
-    @staticmethod
-    def b_pot_quad(src, arg, h, R, sigma, src_type):
-        """
-        Returns potential as a function of distance from the source.
-        """
-        x = np.linspace(src - 4*h, src + 4*h, 51)  # manipulate the resolution, 
-        # TODO: smarter choice of integration resolution
-        pot = np.array([KCSD1D.int_pot(src, arg, current_pos, h, R, sigma, src_type) for current_pos in x])
-        #plot(x, pot)
-        z = np.trapz(pot, x)
-
-        return z
 
     def create_dist_table(self):
         """
@@ -181,7 +136,7 @@ class KCSD1D(object):
 
         for i in xrange(0, self.dist_density + 1):
             arg = (float(i)/self.dist_density) * self.dist_max
-            self.dist_table[i] = KCSD1D.b_pot_quad(0, arg, self.h, self.R,
+            self.dist_table[i] = pt.b_pot_quad(0, arg, self.h, self.R,
                                                    self.sigma, self.source_type)
         #return dist_table
 
@@ -214,9 +169,11 @@ class KCSD1D(object):
 
         for src_ind, curr_src in enumerate(self.source_positions):
             if self.source_type == "gaussian":
-                self.b_src_matrix[:, src_ind] = KCSD1D.gauss_rescale(self.estimation_area, curr_src, self.h)
+                self.b_src_matrix[:, src_ind] = bf.gauss_rescale_1D(self.estimation_area, curr_src, self.h)
             elif self.source_type == "step":
-                self.b_src_matrix[:, src_ind] = KCSD1D.step_rescale(self.estimation_area, curr_src, self.h)
+                self.b_src_matrix[:, src_ind] = bf.step_rescale_1D(self.estimation_area, curr_src, self.h)
+            elif self.source_type == "gauss_lim":
+                self.b_src_matrix[:, src_ind] = bf.gauss_rescale_lim_1D(self.estimation_area, curr_src, self.h)
         #return b_src_matrix    
 
     def calculate_b_interp_pot_matrix(self):
