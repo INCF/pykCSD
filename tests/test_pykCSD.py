@@ -300,8 +300,8 @@ class TestKCSD2D_full_recostruction(unittest.TestCase):
     def test_KCSD2D_dist_table(self):
         expected_dt = np.loadtxt('tests/test_datasets/KCSD2D/five_elec_dist_table.dat', delimiter=',')
         err = norm(expected_dt - self.k.dist_table)
-        # plot(expected_dt-self.k.dist_table)
-        # show()
+        """plot(expected_dt-self.k.dist_table)
+        show()"""
         self.assertAlmostEqual(err, 0.0, places=4)
 
     def test_KCSD2D_b_src_matrix_five_electrodes(self):

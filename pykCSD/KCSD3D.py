@@ -203,8 +203,8 @@ class KCSD3D(object):
 
         for i, x in enumerate(xs):
             pos = (x/self.__dist_table_density) * self.dist_max
-            dist_table[i] = pt.b_pot_3d_cont(pos, self.R, self.h, self.sigma,
-                                             self.basis)
+            dist_table[i] = pt.b_pot_3d_mc(pos, self.R, self.h, self.sigma,
+                                           self.basis)
 
         inter = interp1d(x=xs, y=dist_table, kind='cubic', fill_value=0.0)
         dt_int = np.array([inter(xx) for xx in xrange(self.__dist_table_density)])
