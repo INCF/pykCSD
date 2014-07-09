@@ -1,6 +1,11 @@
 import numpy as np
 from sklearn.cross_validation import KFold, LeaveOneOut, ShuffleSplit
 
+"""
+This module contains routines for cross validation, which is used 
+to find the regularization parameter in the KCSD method
+"""
+
 
 def calc_CV_error(lambd, pot, k_pot, ind_test, ind_train):
     k_train = k_pot[ind_train, ind_train]
@@ -17,6 +22,7 @@ def calc_CV_error(lambd, pot, k_pot, ind_test, ind_train):
 
     err = np.linalg.norm(pot_test - pot_est)
     return err
+
 
 def cross_validation(lambd, pot, k_pot, n_elec, n_folds):
     """

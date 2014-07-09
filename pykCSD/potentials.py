@@ -10,36 +10,44 @@ This consists of integrands and integrals.
 """
 
 
-def int_pot(src, arg, current_pos, h, R, sigma, src_type):
+def int_pot_1D(src, arg, curr_pos ,h, R, sigma, src_type):
     """
     Returns contribution of a single source as a function of distance
     """
-    y = (((arg - current_pos)**2 + R**2)**0.5 - abs(arg - current_pos))
+    y = (((arg - curr_pos)**2 + h**2)**0.5 - abs(arg - curr_pos)) #h czy R
     y *= 1./(2 * sigma)
+    #y *= (np.abs(x-xp)<2*h) #???
 
     if src_type == "gaussian":
         # for this formula look at formula (8) from Pettersen et al., 2006
-        y *= bf.gauss_rescale_1D(src, current_pos, h)
+        y *= bf.gauss_rescale_1D(src, curr_pos, R)
     if src_type == "step":
-        y *= bf.step_rescale_1D(src, current_pos, h)
+        y *= bf.step_rescale_1D(src, curr_pox, R)
     if src_type == 'gauss_lim':
-        y *= bf.gauss_rescale_lim_1D(src, current_pos, h)
+        y *= bf.gauss_rescale_lim_1D(src, curr_pos, R)
 
     return y
 
 
-def b_pot_quad(src, arg, h, R, sigma, src_type):
+def b_pot_quad(src, arg, R, h, sigma, src_type):
     """
     Returns potential as a function of distance from the source.
     """
     resolution = 51
-    x = np.linspace(src - 4*h, src + 4*h, resolution)
-    pot = np.array([int_pot(src, arg, current_pos, h, R, sigma, src_type)
+    x = np.linspace(src - 3*R, src + 3*R, resolution)
+    potx = np.array([int_pot_1D(src, arg, current_pos, h, R, sigma, src_type)
                     for current_pos in x])
 
-    z = np.trapz(pot, x)
+    pot = np.trapz(potx, x)
+    #print -R, R
+    #print x, R, h, sigma, src_type
+    """pot, err = integrate.quad(int_pot_1D,
+                              -R,  R,
+                              args=(x, R, h, sigma, src_type),
+                              epsrel=1e0, epsabs=1e0)"""
 
-    return z
+
+    return pot
 
 
 def int_pot_2D(xp, yp, x, R, h, src_type):

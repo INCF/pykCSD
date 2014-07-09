@@ -1,6 +1,34 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 
+def get_src_params_1D(Lx, n_src):
+    V = Lx
+    V_unit = V/n_src
+    L_unit = V_unit
+
+    nx = np.ceil(Lx/L_unit)
+    ds = Lx/(nx-1)
+
+    Lx_n = (nx-1)*ds
+
+    return (nx, Lx_n, ds)
+
+def make_src_1D(X, ext_x, n_src, R_init):
+    Lx = np.max(X) - np.min(X)
+
+    Lx_n = Lx + 2*ext_x
+
+    (nx, Lx_nn,  ds) = get_src_params_1D(Lx_n, n_src)
+
+    ext_x_n = (Lx_nn - Lx)/2.0
+
+    X_src = np.linspace(-ext_x_n, Lx+ext_x_n, nx)
+
+    d = np.round(R_init/ds)
+    R = d * ds
+
+    return (X_src, R)
+
 
 def get_src_params_2D(Lx, Ly, n_src):
     """
