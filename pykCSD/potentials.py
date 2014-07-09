@@ -2,7 +2,7 @@
 import numpy as np
 import basis_functions as bf
 from scipy import integrate
-from numpy import pi
+from numpy import pi, uint16
 
 """
 This module contains routines for calculating potentials in 1D, 2D, 3D case.
@@ -10,7 +10,7 @@ This consists of integrands and integrals.
 """
 
 
-def int_pot_1D(src, arg, curr_pos, h, R, sigma, src_type):
+def int_pot_1D(src, arg, curr_pos, h, R, sigma, basis_func):
     """
     Returns contribution of a single source as a function of distance
     """
@@ -18,24 +18,19 @@ def int_pot_1D(src, arg, curr_pos, h, R, sigma, src_type):
     y *= 1./(2 * sigma)
     # y *= (np.abs(x-xp)<2*h) #???
 
-    if src_type == "gaussian":
-        # for this formula look at formula (8) from Pettersen et al., 2006
-        y *= bf.gauss_rescale_1D(src, curr_pos, R)
-    if src_type == "step":
-        y *= bf.step_rescale_1D(src, curr_pos, R)
-    if src_type == 'gauss_lim':
-        y *= bf.gauss_rescale_lim_1D(src, curr_pos, R)
+    # for this formula look at formula (8) from Pettersen et al., 2006
+    y *= basis_func(src, curr_pos, R)
 
     return y
 
 
-def b_pot_quad(src, arg, R, h, sigma, src_type):
+def b_pot_quad(src, arg, R, h, sigma, basis_func=bf.gauss_rescale_1D):
     """
     Returns potential as a function of distance from the source.
     """
     resolution = 51
     x = np.linspace(src - 3*R, src + 3*R, resolution)
-    potx = np.array([int_pot_1D(src, arg, current_pos, h, R, sigma, src_type)
+    potx = np.array([int_pot_1D(src, arg, current_pos, h, R, sigma, basis_func)
                     for current_pos in x])
 
     pot = np.trapz(potx, x)
@@ -48,7 +43,7 @@ def b_pot_quad(src, arg, R, h, sigma, src_type):
     return pot
 
 
-def int_pot_2D(xp, yp, x, R, h, src_type):
+def int_pot_2D(xp, yp, x, R, h, basis_func=bf.gauss_rescale_lim_2D):
     """INPUT
     xp,yp    - coordinates of some point laying in the support of a
                basis element centered at (0,0)
@@ -56,8 +51,8 @@ def int_pot_2D(xp, yp, x, R, h, src_type):
              - potential
     R        - radius of the basis element
     h
-    src_type - type of basis function in the source space
-               (step/gauss/gauss_lim)
+    basis_func - type of basis function in the source space
+                (step_rescale_2D/gauss_rescale_2D/gauss_rescale_lim_2D)
     OUTPUT
     int_pot - contribution of a point xp,yp, belonging to a basis source
             - support centered at (0,0) to the potential measured at (x,0),
@@ -68,12 +63,8 @@ def int_pot_2D(xp, yp, x, R, h, src_type):
     if y < 0.00001:
         y = 0.00001
     y = np.arcsinh(h/y)
-    if src_type == 'step':
-        y *= bf.step_rescale_2D(xp, yp, R)
-    elif src_type == 'gaussian':
-        y *= bf.gauss_rescale_2D(xp, yp, [0, 0], R)
-    elif src_type == 'gauss_lim':
-        y *= bf.gauss_rescale_2D_lim(xp, yp, [0, 0], R)
+
+    y *= basis_func(xp, yp, [0, 0], R)
     return y
 
 
@@ -90,7 +81,7 @@ def b_pot_2d_cont(x, R, h, sigma, src_type):
     return pot
 
 
-def int_pot_3D(xp, yp, zp, x, R, h, src_type):
+def int_pot_3D(xp, yp, zp, x, R, h, basis_func):
     """INPUT
     xp,yp,zp    - coordinates of some point laying in the support of a
                 basis element centered at (0,0,0)
@@ -110,16 +101,12 @@ def int_pot_3D(xp, yp, zp, x, R, h, src_type):
     if y < 0.00001:
         y = 0.00001
     y = 1.0/y
-    if src_type == 'step':
-        y *= bf.step_rescale_3D(xp, yp, zp, R)
-    elif src_type == 'gaussian':
-        y *= bf.gauss_rescale_3D(xp, yp, zp, [0, 0, 0], R)
-    elif src_type == 'gauss_lim':
-        y *= bf.gauss_rescale_lim_3D(xp, yp, zp, [0, 0, 0], R)
+
+    y *= basis_func(xp, yp, zp, [0, 0, 0], R)
     return y
 
 
-def b_pot_3d_cont(x, R, h, sigma, src_type):
+def b_pot_3d_cont(x, R, h, sigma, basis_func=bf.gauss_rescale_3D):
     """
     Returns the value of the potential at point (x,y,0) generated
     by a basis source located at (0,0,0)
@@ -127,6 +114,29 @@ def b_pot_3d_cont(x, R, h, sigma, src_type):
     pot, err = integrate.tplquad(int_pot_3D, -R, R,
                                  lambda x: -R, lambda x: R,
                                  lambda x, y: -R, lambda x, y: R,
-                                 args=(x, R, h, src_type))
+                                 args=(x, R, h, basis_func))
     pot *= 1./(4.0*pi*sigma)
+    return pot
+
+
+# TODO generalize generated potential to 1,2,3 dimensions
+def generated_potential(self, x_src, dist_max, dist_table):
+    """
+    Returns potential at a specified distance in distance_table
+    """
+    dt_len = len(dist_table)
+    norms = np.sqrt((self.space_X - x_src)**2)
+    ind = np.maximum(0, np.minimum(uint16(np.round(dt_len * norms/dist_max)), dt_len - 1))
+
+    pot = dist_table[ind]
+    return pot
+
+
+def generated_potential2D(self, x_src, y_src,  dist_max, dt_len):
+    """
+    """
+    norms = np.sqrt((self.space_X - x_src)**2 + (self.space_Y - y_src)**2)
+    ind = np.maximum(0, np.minimum(uint16(np.round(dt_len * norms/dist_max)), dt_len-1))
+
+    pot = self.dist_table[ind]
     return pot

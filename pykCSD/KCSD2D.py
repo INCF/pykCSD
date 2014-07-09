@@ -77,6 +77,13 @@ class KCSD2D(object):
         if self.source_type not in ["gaussian", "step"]:
             raise Exception("Incorrect source type!")
 
+        if self.source_type == "step":
+            self.basis = bf.step_rescale_2D
+        elif self.source_type == "gaussian":
+            self.basis = bf.gauss_rescale_2D
+        elif self.source_type == "gauss_lim":
+            self.basis = bf.gauss_rescale_lim_2D
+
         self.lambdas = np.array([1.0/2**n for n in xrange(0, 20)])
 
         nx = (self.xmax - self.xmin)/self.gdX + 1
@@ -195,14 +202,13 @@ class KCSD2D(object):
         for i, x in enumerate(xs):
             pos = (x/self.__dist_table_density) * self.dist_max
             dist_table[i] = pt.b_pot_2d_cont(pos, self.R, self.h, self.sigma,
-                                             self.source_type)
+                                             self.basis)
 
         inter = interp1d(x=xs, y=dist_table, kind='cubic', fill_value=0.0)
         dt_int = np.array([inter(xx) for xx in xrange(self.__dist_table_density)])
         dt_int.flatten()
 
         self.dist_table = dt_int.copy()
-        # return dt_int
 
     def calculate_b_pot_matrix(self):
         """
@@ -263,8 +269,6 @@ class KCSD2D(object):
         the source basis functions in all the points at which we want to
         calculate the solution (essential for calculating the cross_matrix)
         """
-        R2 = self.R**2
-
         (nsx, nsy) = self.X_src.shape
         n = nsy * nsx  # total number of sources
         (ngx, ngy) = self.space_X.shape
@@ -278,12 +282,10 @@ class KCSD2D(object):
             y_src = self.Y_src[i_x, i_y]
             x_src = self.X_src[i_x, i_y]
 
-            if self.source_type == 'step':
-                self.b_src_matrix[:, :, i] = bf.step_rescale_2D((self.space_X - x_src), (self.space_Y - y_src), R2)
-            elif self.source_type == 'gaussian':
-                self.b_src_matrix[:, :, i] = bf.gauss_rescale_2D(self.space_X, self.space_Y, [x_src, y_src], self.R)
-            elif self.source_type == 'gauss_lim':
-                self.b_src_matrix[:, :, i] = bf.gauss_rescale_2D_lim(self.space_X, self.space_Y, [x_src, y_src], self.R)
+            self.b_src_matrix[:, :, i] = self.basis(self.space_X,
+                                                    self.space_Y,
+                                                    [x_src, y_src],
+                                                    self.R)
 
         self.b_src_matrix = self.b_src_matrix.reshape(ng, n)
 

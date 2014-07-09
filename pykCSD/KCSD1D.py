@@ -51,7 +51,7 @@ class KCSD1D(object):
             raise Exception("Error! Duplicate electrode!")
 
     def set_parameters(self, params):
-        # assigns value from params or default value
+        # assign value from params or default value
         self.sigma = params.get('sigma', 1.0)
         self.n_sources = params.get('n_sources', 300)
         self.xmax = params.get('x_max', np.max(self.elec_pos))
@@ -66,6 +66,13 @@ class KCSD1D(object):
         self.source_type = params.get('source_type', 'gaussian')
         if self.source_type not in ["gaussian", "step", "gauss_lim"]:
             raise Exception("Incorrect source type!")
+
+        if self.source_type == "step":
+            self.basis = bf.step_rescale_1D
+        elif self.source_type == "gaussian":
+            self.basis = bf.gauss_rescale_1D
+        elif self.source_type == "gauss_lim":
+            self.basis = bf.gauss_rescale_lim_1D
 
         self.lambdas = np.array([1.0 / 2**n for n in xrange(0, 20)])
         # space_X is the estimation area
@@ -144,8 +151,7 @@ class KCSD1D(object):
         for i in xrange(0, self.dist_density):
             pos = (float(i)/self.dist_density) * self.dist_max
             self.dist_table[i] = pt.b_pot_quad(0, pos, self.R, self.h,
-                                               self.sigma, self.source_type)
-        # return dist_table
+                                               self.sigma, self.basis)
 
     def calculate_b_pot_matrix(self):
         """
@@ -169,7 +175,7 @@ class KCSD1D(object):
 
             for j in xrange(0, n_obs):
                 # for all the observation points
-                # checking the distance between the observation point 
+                # checking the distance between the observation point
                 # and the source, and calculating the base value
                 dist = norm(self.elec_pos[j] - src)
                 ind = np.minimum(uint16(np.round(dt_len * dist/dist_max)), dt_len - 1)
@@ -187,13 +193,7 @@ class KCSD1D(object):
 
         for i in xrange(n):
             x_src = self.X_src[i]
-            if self.source_type == "step":
-                self.b_src_matrix[:, i] = bf.step_rescale_1D(self.space_X, x_src, self.R)
-            elif self.source_type == "gaussian":
-                self.b_src_matrix[:, i] = bf.gauss_rescale_1D(self.space_X, x_src, self.R)
-            elif self.source_type == "gauss_lim":
-                self.b_src_matrix[:, i] = bf.gauss_rescale_lim_1D(self.space_X, x_src, self.R)
-        # return b_src_matrix
+            self.b_src_matrix[:, i] = self.basis(self.space_X, x_src, self.R)
 
     def generated_potential(self, x_src, dist_max, dt_len):
         """

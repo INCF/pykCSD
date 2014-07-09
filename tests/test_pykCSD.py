@@ -16,6 +16,7 @@ from numpy.linalg import norm
 from pykCSD.pykCSD import KCSD1D
 from pykCSD.pykCSD import KCSD2D
 from pykCSD import potentials as pt
+from pykCSD import basis_functions as bf
 
 
 class TestKCSD1D(unittest.TestCase):
@@ -37,21 +38,20 @@ class TestKCSD1D(unittest.TestCase):
 
         for i, expected_result in enumerate(expected_results):
             # the parameter names h, R were swapped
-            kcsd_result = pt.int_pot_1D(src=srcs[i], 
+            kcsd_result = pt.int_pot_1D(src=srcs[i],
                                         arg=args[i],
                                         curr_pos=curr_pos[i],
                                         R=hs[i],
                                         h=Rs[i],
                                         sigma=sigmas[i],
-                                        src_type='gauss_lim')
+                                        basis_func=bf.gauss_rescale_lim_1D)
             # print 'ex:', expected_result, ' kcsd:', kcsd_result
             self.assertAlmostEqual(expected_result, kcsd_result, places=3)
-        pass
 
     def test_KCSD1D_pot_estimation_two_electrodes(self):
         """pykCSD calculated pots should be almost equal to kCSD1d (matlab) calculated pots"""
         # this is left only to show differences from the matlab version
-        """params = {'x_min': 0.0, 'x_max': 1.0, 
+        """params = {'x_min': 0.0, 'x_max': 1.0,
                     'x': np.array([0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0]),
                 'source_type': 'gauss_lim'}
         k = KCSD1D(elec_pos=np.array([0.2, 0.7]),
@@ -230,7 +230,8 @@ class TestKCSD2D(unittest.TestCase):
         hs = params[4]
         for i, expected_result in enumerate(expected_results):
             kcsd_result = pt.int_pot_2D(xp=xps[i], yp=yps[i], x=xs[i],
-                                        R=Rs[i], h=hs[i], src_type='gaussian')
+                                        R=Rs[i], h=hs[i],
+                                        basis_func=bf.gauss_rescale_lim_2D)
             self.assertAlmostEqual(expected_result, kcsd_result, places=3)
 
     def test_KCSD2D_zero_pot(self):
@@ -381,4 +382,4 @@ class TestKCSD2D_full_recostruction(unittest.TestCase):
         pass
 
 if __name__ == '__main__':
-    unittest.masin()
+    unittest.main()

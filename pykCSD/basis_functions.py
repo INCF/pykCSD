@@ -63,7 +63,7 @@ def gauss_rescale_2D(x, y, mu, three_stdev):
     return Z
 
 
-def gauss_rescale_2D_lim(x, y, mu, three_stdev):
+def gauss_rescale_lim_2D(x, y, mu, three_stdev):
     """
     """
     Z = gauss_rescale_2D(x, y, mu, three_stdev)
@@ -71,11 +71,11 @@ def gauss_rescale_2D_lim(x, y, mu, three_stdev):
     return Z
 
 
-def step_rescale_2D(xp, yp, R):
+def step_rescale_2D(xp, yp, mu, R):
     """
     Returns normalized 2D step function
     """
-    s = (xp**2 + yp**2 <= R**2)
+    s = ((xp-mu[0])**2 + (yp-mu[1])**2 <= R**2)
     return s
 
 
@@ -92,17 +92,17 @@ def gauss_rescale_3D(x, y, z, mu, three_stdev):
     h_n = h * stdev
     c = 0.5 * stdev**(-2)
     Z = np.exp(-c * ((x - mu[0])**2 + (y - mu[1])**2 + (z - mu[2])**2))
-    Z *= h_n
+    Z = Z * h_n
     return Z
 
 
 def gauss_rescale_lim_3D(x, y, z, mu, three_stdev):
     Z = gauss_rescale_3D(x, y, z, mu, three_stdev)
-    Z *= ((x - mu[0])**2 + (y - mu[1])**2 + (z-mu[2])**2 < three_stdev**2)
+    Z = Z * ((x - mu[0])**2 + (y - mu[1])**2 + (z - mu[2])**2 < three_stdev**2)
     return Z
 
 
-def step_rescale_3D(xp, yp, zp, R):
+def step_rescale_3D(xp, yp, zp, mu, R):
     """
     Returns normalized 3D step function
     """
