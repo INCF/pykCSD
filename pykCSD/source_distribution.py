@@ -1,6 +1,12 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 
+"""
+This module contains routines for distributing sources uniformly
+in 1D, 2D, 3D space.
+"""
+
+
 def get_src_params_1D(Lx, n_src):
     V = Lx
     V_unit = V/n_src
@@ -12,6 +18,7 @@ def get_src_params_1D(Lx, n_src):
     Lx_n = (nx-1)*ds
 
     return (nx, Lx_n, ds)
+
 
 def make_src_1D(X, ext_x, n_src, R_init):
     Lx = np.max(X) - np.min(X)
@@ -100,11 +107,12 @@ def get_src_params_3D(Lx, Ly, Lz, n_src):
 
     INPUT
     Lx,Ly,Lz    - lengths in the directions x,y,z of the area, ...
-             the sources should be placed
+                the sources should be placed
     n_src     - number of sources
 
     OUTPUT
     nx,ny,nz     - number of sources in directions x,y
+    Lx_n, Ly_n, Lz_n, - updated lengths in the directions x,y,z
     ds        - spacing between the sources
     """
     V = Lx*Ly*Lz

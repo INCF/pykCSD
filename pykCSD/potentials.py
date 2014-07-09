@@ -10,19 +10,19 @@ This consists of integrands and integrals.
 """
 
 
-def int_pot_1D(src, arg, curr_pos ,h, R, sigma, src_type):
+def int_pot_1D(src, arg, curr_pos, h, R, sigma, src_type):
     """
     Returns contribution of a single source as a function of distance
     """
-    y = (((arg - curr_pos)**2 + h**2)**0.5 - abs(arg - curr_pos)) #h czy R
+    y = (((arg - curr_pos)**2 + h**2)**0.5 - abs(arg - curr_pos))  # h czy R
     y *= 1./(2 * sigma)
-    #y *= (np.abs(x-xp)<2*h) #???
+    # y *= (np.abs(x-xp)<2*h) #???
 
     if src_type == "gaussian":
         # for this formula look at formula (8) from Pettersen et al., 2006
         y *= bf.gauss_rescale_1D(src, curr_pos, R)
     if src_type == "step":
-        y *= bf.step_rescale_1D(src, curr_pox, R)
+        y *= bf.step_rescale_1D(src, curr_pos, R)
     if src_type == 'gauss_lim':
         y *= bf.gauss_rescale_lim_1D(src, curr_pos, R)
 
@@ -39,14 +39,12 @@ def b_pot_quad(src, arg, R, h, sigma, src_type):
                     for current_pos in x])
 
     pot = np.trapz(potx, x)
-    #print -R, R
-    #print x, R, h, sigma, src_type
+    # print -R, R
+    # print x, R, h, sigma, src_type
     """pot, err = integrate.quad(int_pot_1D,
                               -R,  R,
                               args=(x, R, h, sigma, src_type),
                               epsrel=1e0, epsabs=1e0)"""
-
-
     return pot
 
 

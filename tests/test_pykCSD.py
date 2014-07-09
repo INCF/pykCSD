@@ -37,8 +37,13 @@ class TestKCSD1D(unittest.TestCase):
 
         for i, expected_result in enumerate(expected_results):
             # the parameter names h, R were swapped
-            kcsd_result = pt.int_pot_1D(src=srcs[i], arg=args[i], curr_pos=curr_pos[i],
-                                        R=hs[i], h=Rs[i], sigma=sigmas[i], src_type='gauss_lim')
+            kcsd_result = pt.int_pot_1D(src=srcs[i], 
+                                        arg=args[i],
+                                        curr_pos=curr_pos[i],
+                                        R=hs[i],
+                                        h=Rs[i],
+                                        sigma=sigmas[i],
+                                        src_type='gauss_lim')
             # print 'ex:', expected_result, ' kcsd:', kcsd_result
             self.assertAlmostEqual(expected_result, kcsd_result, places=3)
         pass
@@ -69,7 +74,7 @@ class TestKCSD1D(unittest.TestCase):
         """pykCSD calculated CSD should be almost equal to kCSD1d (matlab) calculated CSD"""
         # this is left only to show differences from the matlab version
         """params = {'x_min': 0.0, 'x_max': 1.0,
-                 'x': np.array([0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0]), 
+                 'x': np.array([0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0]),
                  'source_type': 'gauss_lim'}
         k = KCSD1D(elec_pos=np.array([0.2, 0.7]),
                    sampled_pots=np.array([1.0, 0.5]),
@@ -87,7 +92,8 @@ class TestKCSD1D(unittest.TestCase):
     def test_KCSD1D_cross_validation_two_electrodes(self):
         """cross validation should promote high lambdas in this case"""
 
-        params = {'x_min': 0.0, 'x_max': 1.0, 'gdX': 0.1, 'source_type': 'gauss_lim'}
+        params = {'x_min': 0.0, 'x_max': 1.0, 'gdX': 0.1,
+                  'source_type': 'gauss_lim'}
         k = KCSD1D(elec_pos=np.array([0.2, 0.7]),
                    sampled_pots=np.array([1.0, 0.5]),
                    params=params)
@@ -100,7 +106,8 @@ class TestKCSD1D(unittest.TestCase):
     def test_KCSD1D_zero_pot(self):
         """if measured potential is 0, the calculated potential should be 0"""
 
-        params = {'n_sources': 20, 'dist_density': 20, 'source_type': 'gauss_lim'}
+        params = {'n_sources': 20, 'dist_density': 20,
+                  'source_type': 'gauss_lim'}
         k_zero = KCSD1D(elec_pos=np.array([1.0, 2.0, 3.0, 4.0, 5.0]),
                         sampled_pots=[0.0, 0.0, 0.0, 0.0, 0.0],
                         params=params)
@@ -111,7 +118,8 @@ class TestKCSD1D(unittest.TestCase):
     def test_KCSD1D_zero_csd(self):
         """if measured potential is 0, the calculated CSD should be 0"""
 
-        params = {'n_sources': 20, 'dist_density': 20, 'source_type': 'gauss_lim'}
+        params = {'n_sources': 20, 'dist_density': 20,
+                  'source_type': 'gauss_lim'}
         k_zero = KCSD1D(elec_pos=np.array([1.0, 2.0, 3.0, 4.0, 5.0]),
                         sampled_pots=[0.0, 0.0, 0.0, 0.0, 0.0],
                         params=params)
@@ -125,7 +133,7 @@ class TestKCSD1D(unittest.TestCase):
             k = KCSD1D(elec_pos=[0, 1, 2], sampled_pots=[0, 1])
 
     def test_KCSD1D_duplicated_electrode(self):
-        """if there are two electrodes at the same spot, it should raise exception"""
+        """if two electrodes are at the same spot, it should raise exception"""
         with self.assertRaises(Exception):
             k = KCSD1D(elec_pos=[0, 0], sampled_pots=[0, 0])
 
@@ -145,12 +153,13 @@ class TestKCSD1D_full_reconstruction(unittest.TestCase):
         self.xmin = -5.0
         self.xmax = 11.0
         self.x = np.linspace(self.xmin, self.xmax, 100)
-        self.true_csd = 1.0 * np.exp(-(self.x - 2.)**2/(2 * np.pi * 0.5)) 
+        self.true_csd = 1.0 * np.exp(-(self.x - 2.)**2/(2 * np.pi * 0.5))
         self.true_csd += 0.5 * np.exp(-(self.x - 7)**2/(2 * np.pi * 1.0))
         self.h = .3
 
         def calculate_pot(csd, z, z0):
-            pot = 1.0/(2 * self.sigma) * np.trapz((np.sqrt((z0 - z)**2 + self.h**2) - np.abs(z0 - z)) * csd, z)
+            pot = np.trapz((np.sqrt((z0 - z)**2 + self.h**2) - np.abs(z0 - z)) * csd, z)
+            pot *= 1.0/(2 * self.sigma)
             return pot
 
         self.elec_pos = np.linspace(self.xmin, self.xmax, 20)
@@ -161,7 +170,8 @@ class TestKCSD1D_full_reconstruction(unittest.TestCase):
         """reconstructed pots should be similar to model pots"""
 
         params = {'sigma': self.sigma, 'source_type': 'gauss_lim',
-                  'x_min': self.xmin, 'x_max': self.xmax, 'h': self.h, 'n_src': 20}
+                  'x_min': self.xmin, 'x_max': self.xmax,
+                  'h': self.h, 'n_src': 20}
         k = KCSD1D(self.elec_pos, self.meas_pot, params)
         k.calculate_matrices()
         k.estimate_pots()
@@ -263,15 +273,18 @@ class TestKCSD2D_full_recostruction(unittest.TestCase):
         err = norm(expected_b_pot - self.k.b_pot_matrix, ord=2)
         """fig, (ax11, ax21, ax22) = plt.subplots(1, 3)
 
-        ax11.imshow(expected_b_pot, interpolation='none', aspect='auto')
+        ax11.imshow(expected_b_pot,
+                    interpolation='none', aspect='auto')
         ax11.set_title('matlab')
         ax11.autoscale_view(True, True, True)
 
-        ax21.imshow(self.k.b_pot_matrix, interpolation='none', aspect='auto')
+        ax21.imshow(self.k.b_pot_matrix,
+                    interpolation='none', aspect='auto')
         ax21.set_title('python')
         ax21.autoscale_view(True, True, True)
 
-        ax22.imshow(expected_b_pot - self.k.b_pot_matrix, interpolation='none', aspect='auto')
+        ax22.imshow(expected_b_pot - self.k.b_pot_matrix,
+                    interpolation='none', aspect='auto')
         ax22.set_title('diff')
         ax22.autoscale_view(True, True, True)
 
@@ -294,15 +307,18 @@ class TestKCSD2D_full_recostruction(unittest.TestCase):
         expected_b_src_matrix = np.loadtxt('tests/test_datasets/KCSD2D/five_elec_b_src_matrix.dat', delimiter=',')
 
         """fig, (ax11, ax21, ax22) = plt.subplots(1, 3)
-        ax11.imshow(expected_b_src_matrix, interpolation='none', aspect='auto')
+        ax11.imshow(expected_b_src_matrix,
+                    interpolation='none', aspect='auto')
         ax11.set_title('matlab')
         ax11.autoscale_view(True,True,True)
 
-        ax21.imshow(self.k.b_src_matrix, interpolation='none', aspect='auto')
+        ax21.imshow(self.k.b_src_matrix,
+                    interpolation='none', aspect='auto')
         ax21.set_title('python')
         ax21.autoscale_view(True,True,True)
 
-        ax22.imshow(expected_b_src_matrix - self.k.b_src_matrix, interpolation='none', aspect='auto')
+        ax22.imshow(expected_b_src_matrix - self.k.b_src_matrix,
+                    interpolation='none', aspect='auto')
         ax22.set_title('diff')
         ax22.autoscale_view(True,True,True)
 
@@ -324,7 +340,8 @@ class TestKCSD2D_full_recostruction(unittest.TestCase):
         ax21.set_title('python')
         ax21.autoscale_view(True, True, True)
 
-        ax22.imshow(expected_pots - self.k.estimated_pots, interpolation='none', aspect='auto')
+        ax22.imshow(expected_pots - self.k.estimated_pots,
+                    interpolation='none', aspect='auto')
         ax22.set_title('diff')
         ax22.autoscale_view(True, True, True)
 
@@ -338,15 +355,18 @@ class TestKCSD2D_full_recostruction(unittest.TestCase):
         err = norm(expected_csd - self.k.estimated_csd, ord=2)
         """fig, (ax11, ax21, ax22) = plt.subplots(1, 3)
 
-        ax11.imshow(expected_csd, interpolation='none', aspect='auto')
+        ax11.imshow(expected_csd,
+                    interpolation='none', aspect='auto')
         ax11.set_title('matlab')
         ax11.autoscale_view(True, True, True)
 
-        ax21.imshow(self.k.estimated_csd, interpolation='none', aspect='auto')
+        ax21.imshow(self.k.estimated_csd,
+                    interpolation='none', aspect='auto')
         ax21.set_title('python')
         ax21.autoscale_view(True, True, True)
 
-        ax22.imshow(expected_csd - self.k.estimated_csd, interpolation='none', aspect='auto')
+        ax22.imshow(expected_csd - self.k.estimated_csd,
+                    interpolation='none', aspect='auto')
         ax22.set_title('diff')
         ax22.autoscale_view(True, True, True)
 
@@ -361,4 +381,4 @@ class TestKCSD2D_full_recostruction(unittest.TestCase):
         pass
 
 if __name__ == '__main__':
-    unittest.main()
+    unittest.masin()
