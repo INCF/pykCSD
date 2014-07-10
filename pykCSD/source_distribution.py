@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from __future__ import division
+
 import numpy as np
 
 """
@@ -12,7 +14,7 @@ def get_src_params_1D(Lx, n_src):
     V_unit = V/n_src
     L_unit = V_unit
 
-    nx = np.ceil(Lx/L_unit)
+    nx = round(Lx/L_unit)
     ds = Lx/(nx-1)
 
     Lx_n = (nx-1)*ds
@@ -31,7 +33,7 @@ def make_src_1D(X, ext_x, n_src, R_init):
 
     X_src = np.linspace(-ext_x_n, Lx+ext_x_n, nx)
 
-    d = np.round(R_init/ds)
+    d = round(R_init/ds)
     R = d * ds
 
     return (X_src, R)
@@ -95,7 +97,7 @@ def make_src_2D(X, Y, n_src, ext_x, ext_y, R_init):
     X_src, Y_src = np.meshgrid(np.linspace(-ext_x_n, Lx+ext_x_n, nx),
                                np.linspace(-ext_y_n, Ly+ext_y_n, ny))
 
-    d = np.round(R_init/ds)
+    d = round(R_init/ds)
     R = d * ds
 
     return X_src, Y_src, R
@@ -137,7 +139,7 @@ def make_src_3D(X, Y, Z, n_src, ext_x, ext_y, ext_z, R_init):
     INPUT
     X,Y,Z                 - Points at which CSD will be estimated
     n_src               - number of sources we want to include in the model
-    ext_x,ext_y,ext_z        - how should the sources extend the area X,Y,Z
+    ext_x, ext_y, ext_z    - how should the sources extend over the area X,Y,Z
     R_init              - demanded radius of the basis element
 
     OUTPUT

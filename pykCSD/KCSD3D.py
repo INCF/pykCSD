@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from __future__ import division
+
 import numpy as np
 from numpy import uint16
 from numpy import dot, identity
@@ -28,7 +30,7 @@ class KCSD3D(object):
         Optional parameters (keys in params dictionary):
             'sigma' -- space conductance of the medium
             'n_sources' -- number of sources
-            'source_type' -- basis function type ('gaussian', 'step')
+            'source_type' -- basis function type ('gauss', 'step')
             'h' -- thickness of the basis element
             'R' -- cylinder radius
             'x_min', 'x_max', 'y_min', 'y_max', 'z_min', 'z_max'
@@ -59,7 +61,8 @@ class KCSD3D(object):
         self.zmin = params.get('z_min', np.min(self.elec_pos[:, 2]))
 
         self.lambd = params.get('lambda', 0.0)
-        self.R_init = params.get('R_init', 2 * distance.pdist(self.elec_pos).min())
+        self.R_init = params.get('R_init', 
+                                 2 * distance.pdist(self.elec_pos).min())
         self.h = params.get('h', 1.0)
         self.ext_X = params.get('ext_X', 0.0)
         self.ext_Y = params.get('ext_Y', 0.0)
@@ -70,13 +73,13 @@ class KCSD3D(object):
         self.gdZ = params.get('gdZ', 0.05 * (self.zmax - self.zmin))
         self.__dist_table_density = 100
 
-        self.source_type = params.get('source_type', 'gaussian')
-        if self.source_type not in ["gaussian", "step", "gauss_lim"]:
+        self.source_type = params.get('source_type', 'gauss')
+        if self.source_type not in ["gauss", "step", "gauss_lim"]:
             raise Exception("Incorrect source type!")
 
         if self.source_type == "step":
             self.basis = bf.step_rescale_3D
-        elif self.source_type == "gaussian":
+        elif self.source_type == "gauss":
             self.basis = bf.gauss_rescale_3D
         elif self.source_type == "gauss_lim":
             self.basis = bf.gauss_rescale_lim_3D
@@ -179,26 +182,8 @@ class KCSD3D(object):
         The last record corresponds to the distance equal to the
         diagonal of the cuboid.
         """
-        dense_step = 3
-        denser_step = 1
-        sparse_step = 9
-        border1 = 0.9*self.R/self.dist_max * self.__dist_table_density
-        border2 = 1.3*self.R/self.dist_max * self.__dist_table_density
-
-        xs = np.arange(0, border1, dense_step)
-        xs = np.append(xs, border1)
-        zz = np.arange((border1 + denser_step), border2, dense_step)
-
-        xs = np.concatenate((xs, zz))
-        xs = np.append(xs, [border2, (border2 + denser_step)])
-        xs = np.concatenate((xs,
-                             np.arange((border2 + denser_step + sparse_step/2.),
-                                        self.__dist_table_density, sparse_step))
-                            )
-        xs = np.append(xs, self.__dist_table_density + 1)
-
-        xs = np.unique(np.array(xs))
-
+        xs = pt.probe_dist_table_points(self.R, self.dist_max, 
+                                        self.__dist_table_density)
         dist_table = np.zeros(len(xs))
 
         for i, x in enumerate(xs):

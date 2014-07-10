@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from __future__ import division
+
 import numpy as np
 from numpy import uint16
 from numpy import dot, identity
@@ -27,7 +29,7 @@ class KCSD1D(object):
         Optional parameters (keys in params dictionary):
             'sigma' -- space conductance of the medium
             'n_sources' -- number of sources
-            'source_type' -- basis function type ('gaussian', 'step')
+            'source_type' -- basis function type ('gauss', 'step')
             'R' -- thickness of the basis element
             'h' -- cylinder radius
             'dist_density' -- resolution of the dist_table
@@ -58,18 +60,19 @@ class KCSD1D(object):
         self.xmin = params.get('x_min', np.min(self.elec_pos))
         self.dist_density = params.get('dist_density', 100)
         self.lambd = params.get('lambda', 0.0)
-        self.R_init = params.get('R_init',  2*abs(self.elec_pos[1] - self.elec_pos[0]))
+        self.R_init = params.get('R_init',
+                                 2 * abs(self.elec_pos[1] - self.elec_pos[0]))
         self.ext = params.get('ext', 0.0)
         self.h = params.get('h', 1.0)
         self.gdX = params.get('gdX', 0.01*(self.xmax - self.xmin))
 
-        self.source_type = params.get('source_type', 'gaussian')
-        if self.source_type not in ["gaussian", "step", "gauss_lim"]:
+        self.source_type = params.get('source_type', 'gauss')
+        if self.source_type not in ["gauss", "step", "gauss_lim"]:
             raise Exception("Incorrect source type!")
 
         if self.source_type == "step":
             self.basis = bf.step_rescale_1D
-        elif self.source_type == "gaussian":
+        elif self.source_type == "gauss":
             self.basis = bf.gauss_rescale_1D
         elif self.source_type == "gauss_lim":
             self.basis = bf.gauss_rescale_lim_1D
@@ -77,7 +80,8 @@ class KCSD1D(object):
         self.lambdas = np.array([1.0 / 2**n for n in xrange(0, 20)])
         # space_X is the estimation area
         nx = np.ceil((self.xmax - self.xmin)/self.gdX)
-        self.space_X = np.linspace(self.xmin - self.ext, self.xmax + self.ext,
+        self.space_X = np.linspace(self.xmin - self.ext, 
+                                   self.xmax + self.ext,
                                    nx)
         (self.X_src, self.R) = sd.make_src_1D(self.space_X, self.ext,
                                               self.n_sources, self.R_init)
@@ -135,7 +139,10 @@ class KCSD1D(object):
         self.calculate_b_pot_matrix()
         self.k_pot = dot(self.b_pot_matrix.T, self.b_pot_matrix)
 
+
         self.calculate_b_src_matrix()
+        print self.b_src_matrix.shape
+        print self.b_pot_matrix.shape
         self.k_interp_cross = dot(self.b_src_matrix, self.b_pot_matrix)
 
         self.calculate_b_interp_pot_matrix()
@@ -149,7 +156,7 @@ class KCSD1D(object):
         self.dist_table = np.zeros(self.dist_density)
 
         for i in xrange(0, self.dist_density):
-            pos = (float(i)/self.dist_density) * self.dist_max
+            pos = (i/self.dist_density) * self.dist_max
             self.dist_table[i] = pt.b_pot_quad(0, pos, self.R, self.h,
                                                self.sigma, self.basis)
 
@@ -257,7 +264,7 @@ if __name__ == '__main__':
     elec_pos = np.array([0.0, 0.1, 0.4, 0.7, 0.8, 1.0, 1.2, 1.7])
     pots = 0.8 * np.exp(-(elec_pos - 0.1)**2/0.2)
     pots += 0.8 * np.exp(-(elec_pos - 0.7)**2/0.1)
-    params = {'x_min': -1.0, 'x_max': 2.5}
+    params = {'x_min': -1.0, 'x_max': 2.5, 'source_type': 'step', 'n_sources': 55}
 
     k = KCSD1D(elec_pos, pots, params=params)
     k.calculate_matrices()
