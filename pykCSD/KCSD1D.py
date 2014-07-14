@@ -2,7 +2,6 @@
 from __future__ import division
 
 import numpy as np
-from numpy import uint16
 from numpy import dot, identity
 
 from numpy.linalg import norm, inv
@@ -11,31 +10,59 @@ import cross_validation as cv
 import basis_functions as bf
 import source_distribution as sd
 import potentials as pt
+import dist_table_utils as dt
 import plotting_utils as plut
 
 
 class KCSD1D(object):
     """
-    1D variant of the kCSD method.
+    1D variant of solver for the Kernel Current Source Density method.
+
     It assumes constant distribution of sources in a cylinder
     around the electrodes.
+
+    Attributes
+    ----------
+    elec_pos : np.array
+        1D array with positions of electrodes
+    sampled_pots : np.array
+        1D array with measured potentials
+    params : dict, optional
+        customization parameters
     """
 
     def __init__(self, elec_pos, sampled_pots, params={}):
         """
-        Required parameters:
-            elec_pos (list-like) -- positions of electrodes
-            sampled_pots (list-like) -- potentials measured by electrodes
-        Optional parameters (keys in params dictionary):
-            'sigma' -- space conductance of the medium
-            'n_sources' -- number of sources
-            'source_type' -- basis function type ('gauss', 'step')
-            'R' -- thickness of the basis element
-            'h' -- cylinder radius
-            'dist_density' -- resolution of the dist_table
-            'x_min', 'x_max' -- boundaries for CSD estimation space
-            'cross_validation' -- type of index generator
-            'lambda' -- regularization parameter for ridge regression
+        Parameters
+        ----------
+            elec_pos : numpy array 
+                positions of electrodes
+            sampled_pots : numpy array 
+                potentials measured by electrodes
+            params : set, optional
+                configuration parameters, that may contain the following keys:
+                'sigma' : float
+                    space conductance of the medium
+                'n_sources' : int
+                    number of sources
+                'source_type' : str
+                    basis function type ('gauss', 'step', 'gauss_lim')
+                'R_init' : float
+                    demanded thickness of the basis element
+                'h' : float
+                    cylinder radius
+                'dist_density' : int
+                    resolution of the dist_table
+                'x_min', 'x_max' : floats
+                    boundaries for CSD estimation space
+                'ext' : float
+                    length of space extension: x_min-ext ... x_max+ext
+                'gdX' : float
+                    space increment (granularity) in the estimation space
+                'cross_validation' : str
+                    type of index generator
+                'lambd' : float
+                    regularization parameter for ridge regression
         """
         self.validate_parameters(elec_pos, sampled_pots)
         self.elec_pos = elec_pos
@@ -61,26 +88,27 @@ class KCSD1D(object):
         self.dist_density = params.get('dist_density', 100)
         self.lambd = params.get('lambda', 0.0)
         self.R_init = params.get('R_init',
-                                 2 * abs(self.elec_pos[1] - self.elec_pos[0]))
+                                 2*abs(self.elec_pos[1] - self.elec_pos[0]))
         self.ext = params.get('ext', 0.0)
         self.h = params.get('h', 1.0)
         self.gdX = params.get('gdX', 0.01*(self.xmax - self.xmin))
 
         self.source_type = params.get('source_type', 'gauss')
-        if self.source_type not in ["gauss", "step", "gauss_lim"]:
+        basis_types = {
+                        "step": bf.step_rescale_1D,
+                        "gauss": bf.gauss_rescale_1D,
+                        "gauss_lim": bf.gauss_rescale_lim_1D,
+                      }
+        if self.source_type not in basis_types.keys():
             raise Exception("Incorrect source type!")
-
-        if self.source_type == "step":
-            self.basis = bf.step_rescale_1D
-        elif self.source_type == "gauss":
-            self.basis = bf.gauss_rescale_1D
-        elif self.source_type == "gauss_lim":
-            self.basis = bf.gauss_rescale_lim_1D
+        else:
+            self.basis = basis_types.get(self.source_type)
 
         self.lambdas = np.array([1.0 / 2**n for n in xrange(0, 20)])
         # space_X is the estimation area
         nx = np.ceil((self.xmax - self.xmin)/self.gdX)
-        self.space_X = np.linspace(self.xmin - self.ext, 
+        # ASK: should sources be placed over the extended area or the basic? 
+        self.space_X = np.linspace(self.xmin - self.ext,
                                    self.xmax + self.ext,
                                    nx)
         (self.X_src, self.R) = sd.make_src_1D(self.space_X, self.ext,
@@ -139,10 +167,7 @@ class KCSD1D(object):
         self.calculate_b_pot_matrix()
         self.k_pot = dot(self.b_pot_matrix.T, self.b_pot_matrix)
 
-
         self.calculate_b_src_matrix()
-        print self.b_src_matrix.shape
-        print self.b_pot_matrix.shape
         self.k_interp_cross = dot(self.b_src_matrix, self.b_pot_matrix)
 
         self.calculate_b_interp_pot_matrix()
@@ -150,7 +175,7 @@ class KCSD1D(object):
 
     def create_dist_table(self):
         """
-        Create table of a single source contribution to overall potential
+        Creates table of a single source contribution to overall potential
         as a function of distance.
         """
         self.dist_table = np.zeros(self.dist_density)
@@ -162,7 +187,7 @@ class KCSD1D(object):
 
     def calculate_b_pot_matrix(self):
         """
-        Compute the matrix of potentials generated by every
+        Computes the matrix of potentials generated by every
         source basis function at every electrode position.
         """
         n_obs = self.elec_pos.shape[0]
@@ -185,9 +210,10 @@ class KCSD1D(object):
                 # checking the distance between the observation point
                 # and the source, and calculating the base value
                 dist = norm(self.elec_pos[j] - src)
-                ind = np.minimum(uint16(np.round(dt_len * dist/dist_max)), dt_len - 1)
 
-                self.b_pot_matrix[i, j] = self.dist_table[ind]
+                self.b_pot_matrix[i, j] = dt.generated_potential(dist, 
+                                                                 dist_max,
+                                                                 self.dist_table)
 
     def calculate_b_src_matrix(self):
         """
@@ -201,15 +227,6 @@ class KCSD1D(object):
         for i in xrange(n):
             x_src = self.X_src[i]
             self.b_src_matrix[:, i] = self.basis(self.space_X, x_src, self.R)
-
-    def generated_potential(self, x_src, dist_max, dt_len):
-        """
-        """
-        norms = np.sqrt((self.space_X - x_src)**2)
-        ind = np.maximum(0, np.minimum(uint16(np.round(dt_len * norms/dist_max)), dt_len - 1))
-
-        pot = self.dist_table[ind]
-        return pot
 
     def calculate_b_interp_pot_matrix(self):
         """
@@ -236,8 +253,10 @@ class KCSD1D(object):
         for src in xrange(0, n_src):
             # getting the coordinates of the i-th source
             x_src = self.X_src[src]
-
-            self.b_interp_pot_matrix[:, src] = self.generated_potential(x_src, dist_max, dt_len)
+            norms = np.sqrt((self.space_X - x_src)**2)
+            self.b_interp_pot_matrix[:, src] = dt.generated_potential(norms,
+                                                                      dist_max,
+                                                                      self.dist_table)
 
         self.b_interp_pot_matrix = self.b_interp_pot_matrix.reshape(ng, n_src)
 
@@ -264,7 +283,7 @@ if __name__ == '__main__':
     elec_pos = np.array([0.0, 0.1, 0.4, 0.7, 0.8, 1.0, 1.2, 1.7])
     pots = 0.8 * np.exp(-(elec_pos - 0.1)**2/0.2)
     pots += 0.8 * np.exp(-(elec_pos - 0.7)**2/0.1)
-    params = {'x_min': -1.0, 'x_max': 2.5, 'source_type': 'step', 'n_sources': 55}
+    params = {'x_min': -1.0, 'x_max': 2.5, 'source_type': 'step', 'n_sources': 30}
 
     k = KCSD1D(elec_pos, pots, params=params)
     k.calculate_matrices()

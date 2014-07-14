@@ -2,7 +2,6 @@
 from __future__ import division
 
 import numpy as np
-from numpy import uint16
 from numpy import dot, identity
 from numpy.linalg import norm, inv
 
@@ -13,6 +12,7 @@ import cross_validation as cv
 import basis_functions as bf
 import source_distribution as sd
 import potentials as pt
+import dist_table_utils as dt
 import plotting_utils as plut
 
 
@@ -24,19 +24,36 @@ class KCSD3D(object):
 
     def __init__(self, elec_pos, sampled_pots, params={}):
         """
-        Required parameters:
-            elec_pos (list-like) -- positions of electrodes
-            sampled_pots (list-like) -- potentials measured by electrodes
-        Optional parameters (keys in params dictionary):
-            'sigma' -- space conductance of the medium
-            'n_sources' -- number of sources
-            'source_type' -- basis function type ('gauss', 'step')
-            'h' -- thickness of the basis element
-            'R' -- cylinder radius
-            'x_min', 'x_max', 'y_min', 'y_max', 'z_min', 'z_max'
-                     -- boundaries for CSD estimation space
-            'cross_validation' -- type of index generator
-            'lambda' -- regularization parameter for ridge regression
+        Parameters
+        ----------
+            elec_pos : numpy array
+                positions of electrodes
+            sampled_pots : numpy array
+                potentials measured by electrodes
+            params : set, optional
+                configuration parameters, that may contain the following keys:
+                    'sigma' : float
+                        space conductance of the medium
+                    'n_sources' : int
+                        number of sources
+                    'source_type' : str
+                        basis function type ('gauss', 'step', 'gauss_lim')
+                    'R_init' : float
+                        demanded thickness of the basis element
+                    'h' : float
+                        cylinder radius
+                    'dist_density' : int
+                        resolution of the dist_table
+                    'x_min', 'x_max', 'y_min', 'y_max' : floats
+                        boundaries for CSD estimation space
+                    'ext' : float
+                        length of space extension: x_min-ext ... x_max+ext
+                    'gdX', 'gdY' : float
+                        space increments in the estimation space
+                    'cross_validation' : str
+                        type of index generator
+                    'lambd' : float
+                        regularization parameter for ridge regression
         """
         self.validate_parameters(elec_pos, sampled_pots)
         self.elec_pos = elec_pos
@@ -61,7 +78,7 @@ class KCSD3D(object):
         self.zmin = params.get('z_min', np.min(self.elec_pos[:, 2]))
 
         self.lambd = params.get('lambda', 0.0)
-        self.R_init = params.get('R_init', 
+        self.R_init = params.get('R_init',
                                  2 * distance.pdist(self.elec_pos).min())
         self.h = params.get('h', 1.0)
         self.ext_X = params.get('ext_X', 0.0)
@@ -182,7 +199,7 @@ class KCSD3D(object):
         The last record corresponds to the distance equal to the
         diagonal of the cuboid.
         """
-        xs = pt.probe_dist_table_points(self.R, self.dist_max, 
+        xs = dt.probe_dist_table_points(self.R, self.dist_max,
                                         self.__dist_table_density)
         dist_table = np.zeros(len(xs))
 
@@ -206,15 +223,9 @@ class KCSD3D(object):
 
     def calculate_b_pot_matrix_3D(self):
         """
-        X,Y,Z        - grid of points at which we want to calculate CSD
-        nsx,nsy,nsz  - number of base elements in the x and y direction
-        dist_table - vector calculated with 'create_dist_table'
-        R          - radius of the support of the basis functions
-
-        OUTPUT
-        b_pot_matrix - matrix containing containing the values of all
-                   the potential basis functions in all the electrode
-                    positions (essential for calculating the cross_matrix)
+        Calculates b_pot_matrix - matrix containing the values of all
+        the potential basis functions in all the electrode
+        positions (essential for calculating the cross_matrix)
         """
         n_obs = self.elec_pos.shape[0]
         (nx, ny, nz) = self.X_src.shape
@@ -224,8 +235,6 @@ class KCSD3D(object):
         Ly = np.max(self.Y_src) - np.min(self.Y_src) + self.R
         Lz = np.max(self.Z_src) - np.min(self.Z_src) + self.R
         dist_max = (Lx**2 + Ly**2 + Lz**2)**0.5
-
-        dt_len = len(self.dist_table)
 
         self.b_pot_matrix = np.zeros((n, n_obs))
 
@@ -238,12 +247,14 @@ class KCSD3D(object):
 
             for j in xrange(0, n_obs):
                 # for all the observation points
-                # checking the distance between the observation point and the source,
+                # checking the distance between the observation point and
+                # the source,
                 # calculating the base value
                 dist = norm(self.elec_pos[j] - src)
-                ind = np.minimum(uint16(np.round(dt_len * dist/dist_max)), dt_len-1)
 
-                self.b_pot_matrix[i, j] = self.dist_table[ind]
+                self.b_pot_matrix[i, j] = dt.generated_potential(dist,
+                                                                 dist_max,
+                                                                 self.dist_table)
 
     def calculate_b_src_matrix(self):
         """
@@ -253,8 +264,8 @@ class KCSD3D(object):
 
     def make_b_src_matrix_3D(self):
         """
-        Calculate b_src_matrix - matrix containing containing the values of all
-        the source basis functions in all the points at which we want to
+        Calculate b_src_matrix - matrix containing containing the values of
+        all the source basis functions in all the points at which we want to
         calculate the solution (essential for calculating the cross_matrix)
         """
         (nsx, nsy, nsz) = self.X_src.shape
@@ -289,25 +300,12 @@ class KCSD3D(object):
         """
         self.make_b_interp_pot_matrix_3D()
 
-    def generated_potential(self, x_src, y_src, z_src,  dist_max, dt_len):
-        """
-        """
-        norms = np.sqrt((self.space_X - x_src)**2
-                        + (self.space_Y - y_src)**2
-                        + (self.space_Z - z_src)**2)
-        ind = np.maximum(0, np.minimum(uint16(np.round(dt_len * norms/dist_max)), dt_len-1))
-
-        pot = self.dist_table[ind]
-        return pot
-
     def make_b_interp_pot_matrix_3D(self):
         """
         """
         dt_len = len(self.dist_table)
-        Lx = np.max(self.X_src) - np.min(self.X_src) + self.R
-        Ly = np.max(self.Y_src) - np.min(self.Y_src) + self.R
-        Lz = np.max(self.Z_src) - np.min(self.Z_src) + self.R
-        dist_max = (Lx**2 + Ly**2 + Lz**2)**0.5
+
+        dist_max = self.dist_max
 
         (ngx, ngy, ngz) = self.space_X.shape
         ng = ngx * ngy * ngz
@@ -322,8 +320,13 @@ class KCSD3D(object):
             z_src = self.Z_src[i_x, i_y, i_z]
             y_src = self.Y_src[i_x, i_y, i_z]
             x_src = self.X_src[i_x, i_y, i_z]
+            norms = np.sqrt((self.space_X - x_src)**2
+                            + (self.space_Y - y_src)**2
+                            + (self.space_Z - z_src)**2)
 
-            self.b_interp_pot_matrix[:, :, :, src] = self.generated_potential(x_src, y_src, z_src, dist_max, dt_len)
+            self.b_interp_pot_matrix[:, :, :, src] = dt.generated_potential(norms,
+                                                                            dist_max,
+                                                                            self.dist_table)
 
         self.b_interp_pot_matrix = self.b_interp_pot_matrix.reshape(ng, n_src)
 

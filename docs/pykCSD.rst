@@ -44,6 +44,30 @@ pykCSD.cross_validation module
     :undoc-members:
     :show-inheritance:
 
+pykCSD.dist_table_utils module
+------------------------------
+
+.. automodule:: pykCSD.dist_table_utils
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+pykCSD.plotting_utils module
+----------------------------
+
+.. automodule:: pykCSD.plotting_utils
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+pykCSD.potentials module
+------------------------
+
+.. automodule:: pykCSD.potentials
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 pykCSD.pykCSD module
 --------------------
 

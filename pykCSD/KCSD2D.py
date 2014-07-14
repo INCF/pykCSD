@@ -2,7 +2,6 @@
 from __future__ import division
 
 import numpy as np
-from numpy import uint16
 from numpy import dot, identity
 
 from numpy.linalg import norm, inv
@@ -14,34 +13,50 @@ import cross_validation as cv
 import basis_functions as bf
 import source_distribution as sd
 import potentials as pt
+import dist_table_utils as dt
 import plotting_utils as plut
 
 
 class KCSD2D(object):
     """
-    2D variant of the kCSD method.
+    2D variant of solver for the Kernel Current Source Density method.
+
     It assumes constant distribution of sources in a slice around
     the estimation area.
     """
 
     def __init__(self, elec_pos, sampled_pots, params={}):
         """
-        Required parameters:
-            elec_pos (list-like) -- positions of electrodes
-            sampled_pots (list-like) -- potentials measured by electrodes
-        Optional parameters (keys in params dictionary):
-            'sigma' -- space conductance of the medium
-            'n_sources' -- number of sources
-            'source_type' -- basis function type ('gauss', 'step')
-            'h' -- thickness of the basis element
-            'R' --
-            'x_min', 'x_max', 'y_min', 'y_max'
-                -- boundaries for CSD estimation space
-            'cross_validation' -- type of index generator
-            'lambda' -- regularization parameter for ridge regression
-            'gdX', 'gdY' -- size of space increments (granularity)
-
-
+        Parameters
+        ----------
+            elec_pos : numpy array
+                positions of electrodes
+            sampled_pots : numpy array
+                potentials measured by electrodes
+            params : set, optional
+                configuration parameters, that may contain the following keys:
+                'sigma' : float
+                    space conductance of the medium
+                'n_sources' : int
+                    number of sources
+                'source_type' : str
+                    basis function type ('gauss', 'step', 'gauss_lim')
+                'R_init' : float
+                    demanded thickness of the basis element
+                'h' : float
+                    cylinder radius
+                'dist_density' : int
+                    resolution of the dist_table
+                'x_min', 'x_max', 'y_min', 'y_max' : floats
+                    boundaries for CSD estimation space
+                'ext' : float
+                    length of space extension: x_min-ext ... x_max+ext
+                'gdX', 'gdY' : float
+                    space increments in the estimation space
+                'cross_validation' : str
+                    type of index generator
+                'lambd' : float
+                    regularization parameter for ridge regression
         """
         self.validate_parameters(elec_pos, sampled_pots)
         self.elec_pos = elec_pos
@@ -66,7 +81,7 @@ class KCSD2D(object):
         self.ymax = params.get('y_max', np.max(self.elec_pos[:, 1]))
         self.ymin = params.get('y_min', np.min(self.elec_pos[:, 1]))
         self.lambd = params.get('lambda', 0.0)
-        self.R_init = params.get('R_init', 
+        self.R_init = params.get('R_init',
                                  2 * distance.pdist(self.elec_pos).min())
         self.h = params.get('h', 1.0)
         self.ext_x = params.get('ext_x', 0.0)
@@ -118,7 +133,7 @@ class KCSD2D(object):
         output = np.zeros(nx * ny)
 
         for i in xrange(self.elec_pos.shape[0]):
-            output[:] += beta[i]*estimation_table[:, i]
+            output[:] += beta[i] * estimation_table[:, i]
 
         self.estimated_pots = output.reshape(nx, ny)
         return self.estimated_pots
@@ -159,6 +174,7 @@ class KCSD2D(object):
     # subfunctions
     #
 
+    # rename to init_model?
     def calculate_matrices(self):
         """
         Prepares all the required matrices to calculate kCSD.
@@ -181,9 +197,9 @@ class KCSD2D(object):
         The last record corresponds to the distance equal to the
         diagonal of the grid.
         """
-        xs = pt.probe_dist_table_points(self.R, self.dist_max, 
+        xs = dt.probe_dist_table_points(self.R, self.dist_max,
                                         self.__dist_table_density)
-        
+
         dist_table = np.zeros(len(xs))
 
         for i, x in enumerate(xs):
@@ -205,28 +221,16 @@ class KCSD2D(object):
         self.calculate_b_pot_matrix_2D()
 
     def calculate_b_pot_matrix_2D(self):
-        """ INPUT
-        X,Y        - grid of points at which we want to calculate CSD
-        Pot        - Vector of potentials containing electrode positions
-                    and values (calculated with 'make_pot')
-        nsx,nsy    - number of base elements in the x and y direction
-        dist_table - vector calculated with 'create_dist_table'
-        R -        - radius of the support of the basis functions
-
-        OUTPUT
-        b_pot_matrix - matrix containing containing the values of all
-                   the potential basis functions in all the electrode
-                    positions (essential for calculating the cross_matrix)
+        """
+        Calculates b_pot_matrix - matrix containing the values of all
+        the potential basis functions in all the electrode positions 
+        (essential for calculating the cross_matrix).
         """
         n_obs = self.elec_pos.shape[0]
         (nx, ny) = self.X_src.shape
         n = nx * ny
 
-        Lx = np.max(self.X_src) - np.min(self.X_src) + self.R
-        Ly = np.max(self.Y_src) - np.min(self.Y_src) + self.R
-        dist_max = (Lx**2 + Ly**2)**0.5
-
-        dt_len = len(self.dist_table)
+        dist_max = self.dist_max
 
         self.b_pot_matrix = np.zeros((n, n_obs))
 
@@ -237,12 +241,14 @@ class KCSD2D(object):
 
             for j in xrange(0, n_obs):
                 # for all the observation points
-                # checking the distance between the observation point and the source,
+                # checking the distance between the observation point and
+                # the source,
                 # calculating the base value
                 dist = norm(self.elec_pos[j] - src)
-                ind = np.minimum(uint16(np.round(dt_len * dist/dist_max)), dt_len - 1)
 
-                self.b_pot_matrix[i, j] = self.dist_table[ind]
+                self.b_pot_matrix[i, j] = dt.generated_potential(dist, 
+                                                                 dist_max,
+                                                                 self.dist_table)
 
     def calculate_b_src_matrix(self):
         """
@@ -252,8 +258,8 @@ class KCSD2D(object):
 
     def make_b_src_matrix_2D(self):
         """
-        Calculate b_src_matrix - matrix containing containing the values of all
-        the source basis functions in all the points at which we want to
+        Calculate b_src_matrix - matrix containing containing the values of
+        all the source basis functions in all the points at which we want to
         calculate the solution (essential for calculating the cross_matrix)
         """
         (nsx, nsy) = self.X_src.shape
@@ -278,25 +284,15 @@ class KCSD2D(object):
 
     def calculate_b_interp_pot_matrix(self):
         """
-        Compute the matrix of potentials generated by every source basis function
-        at every position in the interpolated space.
+        Compute the matrix of potentials generated by every source
+        basis function at every position in the interpolated space.
         """
         self.make_b_interp_pot_matrix_2D()
-
-    def generated_potential(self, x_src, y_src,  dist_max, dt_len):
-        """
-        """
-        norms = np.sqrt((self.space_X - x_src)**2 + (self.space_Y - y_src)**2)
-        ind = np.maximum(0, np.minimum(uint16(np.round(dt_len * norms/dist_max)), dt_len-1))
-
-        pot = self.dist_table[ind]
-        return pot
 
     def make_b_interp_pot_matrix_2D(self):
         """
         Calculate b_interp_pot_matrix
         """
-        dt_len = len(self.dist_table)
         Lx = np.max(self.X_src) - np.min(self.X_src) + self.R
         Ly = np.max(self.Y_src) - np.min(self.Y_src) + self.R
         dist_max = (Lx**2 + Ly**2)**0.5
@@ -313,8 +309,11 @@ class KCSD2D(object):
             (i_x, i_y) = np.unravel_index(src, (nsx, nsy), order='F')
             y_src = self.Y_src[i_x, i_y]
             x_src = self.X_src[i_x, i_y]
-
-            self.b_interp_pot_matrix[:, :, src] = self.generated_potential(x_src, y_src, dist_max, dt_len)
+            norms = np.sqrt((self.space_X - x_src)**2 + (self.space_Y - y_src)**2)
+            
+            self.b_interp_pot_matrix[:, :, src] = dt.generated_potential(norms,
+                                                                         dist_max,
+                                                                         self.dist_table)
 
         self.b_interp_pot_matrix = self.b_interp_pot_matrix.reshape(ng, n_src)
 

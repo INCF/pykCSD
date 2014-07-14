@@ -13,8 +13,9 @@ import numpy as np
 
 from pylab import *
 from numpy.linalg import norm
-from pykCSD.pykCSD import KCSD1D
-from pykCSD.pykCSD import KCSD2D
+from pykCSD.KCSD1D import KCSD1D
+from pykCSD.KCSD2D import KCSD2D
+from pykCSD.KCSD3D import KCSD3D
 from pykCSD import potentials as pt
 from pykCSD import basis_functions as bf
 
@@ -343,22 +344,34 @@ class TestKCSD2D_full_recostruction(unittest.TestCase):
 class TestKCSD3D_full_recostruction(unittest.TestCase):
 
     def setUp(self):
-        elec_fpath = 'tests/test_datasets/KCSD2D/five_elec_elecs.dat'
+        """ elec_fpath = 'tests/test_datasets/KCSD2D/five_elec_elecs.dat'
         pots_fpath = 'tests/test_datasets/KCSD2D/five_elec_pots.dat'
         elec_pos = np.loadtxt(elec_fpath, delimiter=',')
         pots = np.loadtxt(pots_fpath, delimiter=',')
         params = {'n_sources': 9, 'gdX': 0.1, 'gdY': 0.1}
         self.k = KCSD2D(elec_pos, pots, params)
-        self.k.calculate_matrices()
+        self.k.calculate_matrices()"""
+        pass
 
     def test_KCSD3D_zero_pot(self):
         """if the input pots are zero, estimated pots and csd should be zero"""
-        pass
+        elec_pos = np.array([(0, 0, 0), (0, 0, 1), (0, 1, 0), (1, 0, 0),
+                            (0, 1, 1), (1, 1, 0), (1, 0, 1), (1, 1, 1)])
+        pots = np.array([0, 0, 0, 0, 0, 0, 0, 0])
+        k = KCSD3D(elec_pos, pots, params={'gdX': 0.1, 'gdY': 0.1, 'gdZ': 0.1})
+        k.calculate_matrices()
+        k.estimate_pots()
+        k.estimate_csd()
+        for pot in k.estimated_pots.flatten():
+            self.assertAlmostEqual(pot, 0.0, places=5)
+        for csd in k.estimated_csd.flatten():
+            self.assertAlmostEqual(csd, 0.0, places=5)
 
     def tearDown(self):
         pass
 
-class TestKCSD1D2D3D_utils(unittest.TestCase):
+
+class TestKCSD_all_utils(unittest.TestCase):
 
     def setUp(self):
         pass
@@ -377,6 +390,9 @@ class TestKCSD1D2D3D_utils(unittest.TestCase):
 
     def tearDown(self):
         pass
+
+
+# TODO: test if KCSD run on translated grid v(x) gives the same output!
 
 
 def comparison_plot_2D(arr_true, arr_recstr, arr_true_title, arr_recstr_label):

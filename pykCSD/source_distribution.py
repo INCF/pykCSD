@@ -9,7 +9,27 @@ in 1D, 2D, 3D space.
 """
 
 
+# TODO: ADD COLORBARS
 def get_src_params_1D(Lx, n_src):
+    """
+    Helps to distribute n_src sources evenly over a line of length Lx
+
+    Parameters
+    -----------
+    Lx : float
+        length of the line over which the sources should be placed
+    n_src : int
+        demanded number of sources to be included in the model
+
+    Returns
+    -----------
+    nx : int
+        number of sources in direction x
+    Lx_n : float
+        updated length
+    ds : float
+        spacing between the sources
+    """
     V = Lx
     V_unit = V/n_src
     L_unit = V_unit
@@ -23,11 +43,32 @@ def get_src_params_1D(Lx, n_src):
 
 
 def make_src_1D(X, ext_x, n_src, R_init):
+    """
+    Parameters
+    -----------
+    X : np.array
+        points at which CSD will be estimated
+    ext_x : float
+        how should the sources extend the area X, Y
+    n_src : int
+        demanded number of sources to be included in the model
+    R_init : float
+        demanded radius of the basis element
+
+    Returns
+    -----------
+    X_src : np.arrays
+        positions of the sources
+    nx : ints
+        number of sources over the line
+    R : float
+        effective radius of the basis element
+    """
     Lx = np.max(X) - np.min(X)
 
     Lx_n = Lx + 2*ext_x
 
-    (nx, Lx_nn,  ds) = get_src_params_1D(Lx_n, n_src)
+    (nx, Lx_nn, ds) = get_src_params_1D(Lx_n, n_src)
 
     ext_x_n = (Lx_nn - Lx)/2.0
 
@@ -39,18 +80,28 @@ def make_src_1D(X, ext_x, n_src, R_init):
     return (X_src, R)
 
 
+# TODO: replace with the hypervolume approach?
 def get_src_params_2D(Lx, Ly, n_src):
     """
-    helps uniformally distribute n_src sources among an area of size Lx x Ly
+    Helps to distribute n_src sources evenly in a rectangle of size Lx * Ly
 
-    INPUT
-    Lx,Ly     - lengths in the directions x,y of the area, ...
-             the sources should be placed
-    n_src     - number of sources
+    Parameters
+    -----------
+    Lx, Ly : floats
+        lengths in the directions x, y of the area,
+        the sources should be placed
+    n_src : int
+        demanded number of sources
 
-    OUTPUT
-    nx,ny     - number of sources in directions x,y
-    ds        - spacing between the sources
+    Returns
+    -----------
+    nx, ny : ints
+        number of sources in directions x, y
+        new n_src = nx * ny may not be equal to the demanded number of sources
+    Lx_n, Ly_n : floats
+        updated lengths in the directions x, y
+    ds : float
+        spacing between the sources
     """
     coeff = [Ly, Lx - Ly, -Lx * n_src]
 
@@ -72,16 +123,26 @@ def get_src_params_2D(Lx, Ly, n_src):
 
 def make_src_2D(X, Y, n_src, ext_x, ext_y, R_init):
     """
-    INPUT
-    X,Y                 - Points at which CSD will be estimated
-    n_src               - number of sources we want to include in the model
-    ext_x,ext_y,        - how should the sources extend the area X,Y,Z
-    R_init              - demanded radius of the basis element
+    Parameters
+    -----------
+    X, Y : np.arrays
+        points at which CSD will be estimated
+    n_src : int
+        demanded number of sources to be included in the model
+    ext_x, ext_y : floats
+        how should the sources extend the area X, Y
+    R_init : float
+        demanded radius of the basis element
 
-    OUTPUT
-    X_src,Y_src       - Positions of the sources
-    nx,ny             - number of sources in directions x,y,z
-    R                 - effective radius of the basis element
+    Returns
+    -----------
+    X_src, Y_src : np.arrays
+        positions of the sources
+    nx, ny : ints
+        number of sources in directions x,y
+        new n_src = nx * ny may not be equal to the demanded number of sources
+    R : float
+        effective radius of the basis element
     """
     Lx = np.max(X) - np.min(X)
     Ly = np.max(Y) - np.min(Y)
@@ -105,17 +166,26 @@ def make_src_2D(X, Y, n_src, ext_x, ext_y, R_init):
 
 def get_src_params_3D(Lx, Ly, Lz, n_src):
     """
-    helps uniformally distribute n_src sources in a cuboid of size Lx x Ly x Lz
+    Helps to evenly distribute n_src sources in a cuboid of size Lx * Ly * Lz
 
-    INPUT
-    Lx,Ly,Lz    - lengths in the directions x,y,z of the area, ...
-                the sources should be placed
-    n_src     - number of sources
+    Parameters
+    -----------
+    Lx, Ly, Lz : floats
+        lengths in the directions x, y, z of the area,
+        the sources should be placed
+    n_src : int
+        demanded number of sources to be included in the model
 
-    OUTPUT
-    nx,ny,nz     - number of sources in directions x,y
-    Lx_n, Ly_n, Lz_n, - updated lengths in the directions x,y,z
-    ds        - spacing between the sources
+    Returns
+    -----------
+    nx, ny, nz : ints
+        number of sources in directions x, y, z
+        new n_src = nx * ny * nz may not be equal to the demanded number of
+        sources
+    Lx_n, Ly_n, Lz_n : floats
+        updated lengths in the directions x, y, z
+    ds : float
+        spacing between the sources (grid nodes)
     """
     V = Lx*Ly*Lz
     V_unit = V/n_src
@@ -136,16 +206,27 @@ def get_src_params_3D(Lx, Ly, Lz, n_src):
 
 def make_src_3D(X, Y, Z, n_src, ext_x, ext_y, ext_z, R_init):
     """
-    INPUT
-    X,Y,Z                 - Points at which CSD will be estimated
-    n_src               - number of sources we want to include in the model
-    ext_x, ext_y, ext_z    - how should the sources extend over the area X,Y,Z
-    R_init              - demanded radius of the basis element
+    Parameters
+    -----------
+    X, Y, Z : np.arrays
+        points at which CSD will be estimated
+    n_src : int
+        desired number of sources we want to include in the model
+    ext_x, ext_y, ext_z : floats
+        how should the sources extend over the area X,Y,Z
+    R_init : float
+        demanded radius of the basis element
 
-    OUTPUT
-    X_src, Y_src, Z_src       - Positions of the sources
-    nx,ny,nz             - number of sources in directions x,y,z
-    R                 - effective radius of the basis element
+    Returns
+    -----------
+    X_src, Y_src, Z_src : np.arrays
+        positions of the sources in 3D space
+    nx, ny, nz : ints
+        number of sources in directions x,y,z
+        new n_src = nx * ny * nz may not be equal to the demanded number of
+        sources
+    R : float
+        updated radius of the basis element
     """
     Lx = np.max(X) - np.min(X)
     Ly = np.max(Y) - np.min(Y)
