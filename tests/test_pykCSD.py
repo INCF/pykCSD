@@ -9,15 +9,17 @@ Tests for `pykCSD` module.
 """
 
 import unittest
-import numpy as np
 
+import numpy as np
 from pylab import *
 from numpy.linalg import norm
+
 from pykCSD.KCSD1D import KCSD1D
 from pykCSD.KCSD2D import KCSD2D
 from pykCSD.KCSD3D import KCSD3D
 from pykCSD import potentials as pt
 from pykCSD import basis_functions as bf
+from pykCSD import source_distribution as sd
 
 
 class TestKCSD1D(unittest.TestCase):
@@ -358,7 +360,13 @@ class TestKCSD3D_full_recostruction(unittest.TestCase):
         elec_pos = np.array([(0, 0, 0), (0, 0, 1), (0, 1, 0), (1, 0, 0),
                             (0, 1, 1), (1, 1, 0), (1, 0, 1), (1, 1, 1)])
         pots = np.array([0, 0, 0, 0, 0, 0, 0, 0])
-        k = KCSD3D(elec_pos, pots, params={'gdX': 0.1, 'gdY': 0.1, 'gdZ': 0.1})
+        params = {
+            'gdX': 0.2,
+            'gdY': 0.2,
+            'gdZ': 0.2,
+            'n_src': 10
+        }
+        k = KCSD3D(elec_pos, pots, params)
         k.calculate_matrices()
         k.estimate_pots()
         k.estimate_csd()
@@ -376,9 +384,27 @@ class TestKCSD_all_utils(unittest.TestCase):
     def setUp(self):
         pass
 
-    def test_make_src1D(self):
+    def test_make_src1D_no_ext_4_src(self):
         """ """
-        pass
+        X = np.array([0.0, 0.1, 0.2, 0.3])
+        (X_src, R) = sd.make_src_1D(X=X, ext_x=0.0, n_src=4, R_init=0.2)
+        for i in xrange(len(X_src)):
+            self.assertAlmostEqual(X_src[i], X[i], places=6)
+
+    def test_make_src1D_negative_coords_4_src(self):
+        """ """
+        X = np.array([-0.5, -0.3, -0.1, 0.1])
+        (X_src, R) = sd.make_src_1D(X=X, ext_x=0.0, n_src=4, R_init=0.2)
+        for i in xrange(len(X_src)):
+            self.assertAlmostEqual(X_src[i], X[i], places=6)
+
+    def test_make_src1D_with_ext_6_src(self):
+        """ """
+        X = np.array([0.0, 0.1, 0.2, 0.3])
+        (X_src, R) = sd.make_src_1D(X=X, ext_x=0.1, n_src=6, R_init=0.2)
+        expected_X_src = [-0.1, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5]
+        for i in xrange(len(X_src)):
+            self.assertAlmostEqual(X_src[i], expected_X_src[i], places=6)
 
     def test_make_src2D(self):
         """ """
@@ -395,16 +421,16 @@ class TestKCSD_all_utils(unittest.TestCase):
 # TODO: test if KCSD run on translated grid v(x) gives the same output!
 
 
-def comparison_plot_2D(arr_true, arr_recstr, arr_true_title, arr_recstr_label):
+def comparison_plot_2D(arr_true, arr_recstr, true_title, recstr_title):
     """For visual check of the results."""
     fig, (ax11, ax21, ax22) = plt.subplots(1, 3)
 
     ax11.imshow(arr_true, interpolation='none', aspect='auto')
-    ax11.set_title(arr_true_title)
+    ax11.set_title(true_title)
     ax11.autoscale_view(True, True, True)
 
     ax21.imshow(arr_recstr, interpolation='none', aspect='auto')
-    ax21.set_title(arr_recstr_label)
+    ax21.set_title(recstr_title)
     ax21.autoscale_view(True, True, True)
 
     ax22.imshow(arr_true - arr_recstr,

@@ -125,8 +125,7 @@ def gauss_rescale_3D(x, y, z, mu, three_stdev):
     h = 1./(2*pi)
     stdev = three_stdev/3.0
     c = 0.5 * stdev**(-2)
-    Z = np.exp(-c * ((x - mu[0])**2 + (y - mu[1])**2 + (z - mu[2])**2))
-    Z = Z 
+    Z = h * np.exp(-c * ((x - mu[0])**2 + (y - mu[1])**2 + (z - mu[2])**2))
     return Z
 
 

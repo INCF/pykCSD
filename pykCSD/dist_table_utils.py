@@ -2,12 +2,12 @@
 from __future__ import division
 
 import numpy as np
+from scipy.interpolate import interp1d
 
 
-#TODO evaluate for the step function
 def probe_dist_table_points(R, dist_max, dt_len):
     """
-    Helps to choose important points in the distance table to probe 
+    Helps to choose important points in the distance table to probe
     the distance function. The points should be probed denser in the place,
     where function changes more rapidly.
 
@@ -44,6 +44,18 @@ def probe_dist_table_points(R, dist_max, dt_len):
     xs = np.unique(np.array(xs))
 
     return xs
+
+
+def interpolate_dist_table(xs, probed_dist_table, dt_len):
+    inter = interp1d(
+        x=xs,
+        y=probed_dist_table,
+        kind='cubic',
+        fill_value=0.0
+    )
+    dt_int = np.array([inter(i) for i in xrange(dt_len)])
+    dt_int.flatten()
+    return dt_int
 
 
 def generated_potential(dist, dist_max, dist_table):

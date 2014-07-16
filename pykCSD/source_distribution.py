@@ -72,7 +72,7 @@ def make_src_1D(X, ext_x, n_src, R_init):
 
     ext_x_n = (Lx_nn - Lx)/2.0
 
-    X_src = np.linspace(-ext_x_n, Lx+ext_x_n, nx)
+    X_src = np.linspace(np.min(X)-ext_x_n, np.max(X)+ext_x_n, nx)
 
     d = round(R_init/ds)
     R = d * ds

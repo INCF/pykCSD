@@ -3,10 +3,7 @@ from __future__ import division
 
 import numpy as np
 from numpy import dot, identity
-
 from numpy.linalg import norm, inv
-
-from scipy.interpolate import interp1d
 import scipy.spatial.distance as distance
 
 import cross_validation as cv
@@ -89,7 +86,7 @@ class KCSD2D(object):
 
         self.gdX = params.get('gdX', 0.01 * (self.xmax - self.xmin))
         self.gdY = params.get('gdY', 0.01 * (self.ymax - self.ymin))
-        self.__dist_table_density = 100
+        self.dist_table_density = 100
 
         self.source_type = params.get('source_type', 'gauss')
         if self.source_type not in ["gauss", "step"]:
@@ -111,12 +108,14 @@ class KCSD2D(object):
         lin_y = np.linspace(self.ymin, self.ymax, ny)
         self.space_X, self.space_Y = np.meshgrid(lin_x, lin_y)
 
-        (self.X_src, self.Y_src, self.R) = sd.make_src_2D(self.space_X,
-                                                          self.space_Y,
-                                                          self.n_sources,
-                                                          self.ext_x,
-                                                          self.ext_y,
-                                                          self.R_init)
+        (self.X_src, self.Y_src, self.R) = sd.make_src_2D(
+            self.space_X,
+            self.space_Y,
+            self.n_sources,
+            self.ext_x,
+            self.ext_y,
+            self.R_init
+        )
 
         Lx = np.max(self.X_src) - np.min(self.X_src) + self.R
         Ly = np.max(self.Y_src) - np.min(self.Y_src) + self.R
@@ -198,20 +197,20 @@ class KCSD2D(object):
         diagonal of the grid.
         """
         xs = dt.probe_dist_table_points(self.R, self.dist_max,
-                                        self.__dist_table_density)
+                                        self.dist_table_density)
 
         dist_table = np.zeros(len(xs))
 
         for i, x in enumerate(xs):
-            pos = (x/self.__dist_table_density) * self.dist_max
+            pos = (x/self.dist_table_density) * self.dist_max
             dist_table[i] = pt.b_pot_2d_cont(pos, self.R, self.h, self.sigma,
                                              self.basis)
 
-        inter = interp1d(x=xs, y=dist_table, kind='cubic', fill_value=0.0)
-        dt_int = np.array([inter(xx) for xx in xrange(self.__dist_table_density)])
-        dt_int.flatten()
-
-        self.dist_table = dt_int.copy()
+        self.dist_table = dt.interpolate_dist_table(
+            xs,
+            dist_table,
+            self.dist_table_density
+        )
 
     def calculate_b_pot_matrix(self):
         """
@@ -223,14 +222,12 @@ class KCSD2D(object):
     def calculate_b_pot_matrix_2D(self):
         """
         Calculates b_pot_matrix - matrix containing the values of all
-        the potential basis functions in all the electrode positions 
+        the potential basis functions in all the electrode positions
         (essential for calculating the cross_matrix).
         """
         n_obs = self.elec_pos.shape[0]
         (nx, ny) = self.X_src.shape
         n = nx * ny
-
-        dist_max = self.dist_max
 
         self.b_pot_matrix = np.zeros((n, n_obs))
 
@@ -246,9 +243,11 @@ class KCSD2D(object):
                 # calculating the base value
                 dist = norm(self.elec_pos[j] - src)
 
-                self.b_pot_matrix[i, j] = dt.generated_potential(dist, 
-                                                                 dist_max,
-                                                                 self.dist_table)
+                self.b_pot_matrix[i, j] = dt.generated_potential(
+                    dist,
+                    self.dist_max,
+                    self.dist_table
+                )
 
     def calculate_b_src_matrix(self):
         """
@@ -293,10 +292,6 @@ class KCSD2D(object):
         """
         Calculate b_interp_pot_matrix
         """
-        Lx = np.max(self.X_src) - np.min(self.X_src) + self.R
-        Ly = np.max(self.Y_src) - np.min(self.Y_src) + self.R
-        dist_max = (Lx**2 + Ly**2)**0.5
-
         (ngx, ngy) = self.space_X.shape
         ng = ngx * ngy
         (nsx, nsy) = self.X_src.shape
@@ -304,16 +299,19 @@ class KCSD2D(object):
 
         self.b_interp_pot_matrix = np.zeros((ngx, ngy, n_src))
 
-        for src in xrange(0, n_src):
+        for i in xrange(0, n_src):
             # getting the coordinates of the i-th source
-            (i_x, i_y) = np.unravel_index(src, (nsx, nsy), order='F')
+            (i_x, i_y) = np.unravel_index(i, (nsx, nsy), order='F')
             y_src = self.Y_src[i_x, i_y]
             x_src = self.X_src[i_x, i_y]
-            norms = np.sqrt((self.space_X - x_src)**2 + (self.space_Y - y_src)**2)
-            
-            self.b_interp_pot_matrix[:, :, src] = dt.generated_potential(norms,
-                                                                         dist_max,
-                                                                         self.dist_table)
+            norms = np.sqrt((self.space_X - x_src)**2
+                            + (self.space_Y - y_src)**2)
+
+            self.b_interp_pot_matrix[:, :, i] = dt.generated_potential(
+                norms,
+                self.dist_max,
+                self.dist_table
+            )
 
         self.b_interp_pot_matrix = self.b_interp_pot_matrix.reshape(ng, n_src)
 
@@ -327,11 +325,13 @@ class KCSD2D(object):
         errors_iter = np.zeros(n_iter)
         for i, lambd in enumerate(lambdas):
             for j in xrange(n_iter):
-                errors_iter[j] = cv.cross_validation(lambd,
-                                                     self.sampled_pots,
-                                                     self.k_pot,
-                                                     elec_pos.shape[0],
-                                                     n_folds)
+                errors_iter[j] = cv.cross_validation(
+                    lambd,
+                    self.sampled_pots,
+                    self.k_pot,
+                    elec_pos.shape[0],
+                    n_folds
+                )
             errors[i] = np.mean(errors_iter)
         return lambdas[errors == min(errors)][0]
 

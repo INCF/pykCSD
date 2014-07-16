@@ -35,9 +35,9 @@ class KCSD1D(object):
         """
         Parameters
         ----------
-            elec_pos : numpy array 
+            elec_pos : numpy array
                 positions of electrodes
-            sampled_pots : numpy array 
+            sampled_pots : numpy array
                 potentials measured by electrodes
             params : set, optional
                 configuration parameters, that may contain the following keys:
@@ -95,10 +95,10 @@ class KCSD1D(object):
 
         self.source_type = params.get('source_type', 'gauss')
         basis_types = {
-                        "step": bf.step_rescale_1D,
-                        "gauss": bf.gauss_rescale_1D,
-                        "gauss_lim": bf.gauss_rescale_lim_1D,
-                      }
+            "step": bf.step_rescale_1D,
+            "gauss": bf.gauss_rescale_1D,
+            "gauss_lim": bf.gauss_rescale_lim_1D,
+        }
         if self.source_type not in basis_types.keys():
             raise Exception("Incorrect source type!")
         else:
@@ -107,14 +107,13 @@ class KCSD1D(object):
         self.lambdas = np.array([1.0 / 2**n for n in xrange(0, 20)])
         # space_X is the estimation area
         nx = np.ceil((self.xmax - self.xmin)/self.gdX)
-        # ASK: should sources be placed over the extended area or the basic? 
+        # ASK: should sources be placed over the extended area or the basic?
         self.space_X = np.linspace(self.xmin - self.ext,
                                    self.xmax + self.ext,
                                    nx)
         (self.X_src, self.R) = sd.make_src_1D(self.space_X, self.ext,
                                               self.n_sources, self.R_init)
 
-        self.X_src += np.min(self.space_X)
         Lx = np.max(self.X_src) - np.min(self.X_src) + self.R
         self.dist_max = Lx
 
@@ -194,11 +193,6 @@ class KCSD1D(object):
         nx, = self.X_src.shape
         n = nx
 
-        Lx = np.max(self.X_src) - np.min(self.X_src) + self.R
-        dist_max = Lx
-
-        dt_len = len(self.dist_table)
-
         self.b_pot_matrix = np.zeros((n, n_obs))
 
         for i in xrange(0, n):
@@ -211,9 +205,11 @@ class KCSD1D(object):
                 # and the source, and calculating the base value
                 dist = norm(self.elec_pos[j] - src)
 
-                self.b_pot_matrix[i, j] = dt.generated_potential(dist, 
-                                                                 dist_max,
-                                                                 self.dist_table)
+                self.b_pot_matrix[i, j] = dt.generated_potential(
+                    dist,
+                    self.dist_max,
+                    self.dist_table
+                )
 
     def calculate_b_src_matrix(self):
         """
@@ -239,9 +235,6 @@ class KCSD1D(object):
         """
         Calculate b_interp_pot_matrix
         """
-        dt_len = len(self.dist_table)
-        dist_max = self.dist_max
-
         ngx, = self.space_X.shape
         ng = ngx
 
@@ -250,13 +243,15 @@ class KCSD1D(object):
 
         self.b_interp_pot_matrix = np.zeros((ngx, n_src))
 
-        for src in xrange(0, n_src):
+        for i in xrange(0, n_src):
             # getting the coordinates of the i-th source
-            x_src = self.X_src[src]
+            x_src = self.X_src[i]
             norms = np.sqrt((self.space_X - x_src)**2)
-            self.b_interp_pot_matrix[:, src] = dt.generated_potential(norms,
-                                                                      dist_max,
-                                                                      self.dist_table)
+            self.b_interp_pot_matrix[:, i] = dt.generated_potential(
+                norms,
+                self.dist_max,
+                self.dist_table
+            )
 
         self.b_interp_pot_matrix = self.b_interp_pot_matrix.reshape(ng, n_src)
 
@@ -270,10 +265,13 @@ class KCSD1D(object):
         errors_iter = np.zeros(n_iter)
         for i, lambd in enumerate(lambdas):
             for j in xrange(n_iter):
-                errors_iter[j] = cv.cross_validation(lambd, self.sampled_pots,
-                                                     self.k_pot,
-                                                     self.elec_pos.shape[0],
-                                                     n_folds)
+                errors_iter[j] = cv.cross_validation(
+                    lambd,
+                    self.sampled_pots,
+                    self.k_pot,
+                    self.elec_pos.shape[0],
+                    n_folds
+                )
             errors[i] = np.mean(errors_iter)
         return lambdas[errors == min(errors)][0]
 
@@ -283,7 +281,12 @@ if __name__ == '__main__':
     elec_pos = np.array([0.0, 0.1, 0.4, 0.7, 0.8, 1.0, 1.2, 1.7])
     pots = 0.8 * np.exp(-(elec_pos - 0.1)**2/0.2)
     pots += 0.8 * np.exp(-(elec_pos - 0.7)**2/0.1)
-    params = {'x_min': -1.0, 'x_max': 2.5, 'source_type': 'step', 'n_sources': 30}
+    params = {
+        'x_min': -1.0,
+        'x_max': 2.5,
+        'source_type': 'step',
+        'n_sources': 30
+    }
 
     k = KCSD1D(elec_pos, pots, params=params)
     k.calculate_matrices()
