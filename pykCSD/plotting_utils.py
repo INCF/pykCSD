@@ -7,6 +7,7 @@ Simple plotting routines for KCSD 1D, 2D, 3D.
 """
 
 
+# TODO: ADD COLORBARS
 def plot_1D(elec_pos, meas_pots, est_pots, est_csd, extent):
     fig, (ax11, ax21, ax22) = plt.subplots(1, 3, sharex=True)
 
@@ -51,9 +52,7 @@ def plot_3D(elec_pos, est_pots, est_csd, extent):
     fig = plt.figure()
 
     ax11 = fig.add_subplot(2, 4, 1, projection='3d')
-
     ax11.set_title('Electrode setup')
-
     ax11.scatter(elec_pos[:, 0], elec_pos[:, 1], elec_pos[:, 2])
 
     ax12 = fig.add_subplot(2, 4, 2)

@@ -8,8 +8,8 @@ from scipy.interpolate import interp1d
 def probe_dist_table_points(R, dist_max, dt_len):
     """
     Helps to choose important points in the distance table to probe
-    the distance function. The points should be probed denser in the place,
-    where function changes more rapidly.
+    the distance function of potential. The points should be probed
+    denser in the place, where the function changes more rapidly.
 
     Parameters
     -----------

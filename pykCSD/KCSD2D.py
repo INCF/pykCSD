@@ -4,7 +4,6 @@ from __future__ import division
 import numpy as np
 from numpy import dot, identity
 from numpy.linalg import norm, inv
-import scipy.spatial.distance as distance
 
 import cross_validation as cv
 import basis_functions as bf
@@ -12,6 +11,7 @@ import source_distribution as sd
 import potentials as pt
 import dist_table_utils as dt
 import plotting_utils as plut
+import parameters_utils as parut
 
 
 class KCSD2D(object):
@@ -50,8 +50,8 @@ class KCSD2D(object):
                     length of space extension: x_min-ext ... x_max+ext
                 'gdX', 'gdY' : float
                     space increments in the estimation space
-                'cross_validation' : str
-                    type of index generator
+                'cv_generator' : str
+                    type of index generator for cross_validation
                 'lambd' : float
                     regularization parameter for ridge regression
         """
@@ -66,9 +66,8 @@ class KCSD2D(object):
                              to electrode number!")
         if elec_pos.shape[0] < 3:
             raise Exception("Number of electrodes must be at least 3!")
-        # elec_set = set(elec_pos)
-        # if len(elec_pos) != len(elec_set):
-        #    raise Exception("Error! Duplicate electrode!")
+        if parut.check_for_duplicated_electrodes(elec_pos) is False:
+            raise Exception("Error! Duplicated electrode!")
 
     def set_parameters(self, params):
         self.sigma = params.get('sigma', 1.0)
@@ -78,8 +77,7 @@ class KCSD2D(object):
         self.ymax = params.get('y_max', np.max(self.elec_pos[:, 1]))
         self.ymin = params.get('y_min', np.min(self.elec_pos[:, 1]))
         self.lambd = params.get('lambda', 0.0)
-        self.R_init = params.get('R_init',
-                                 2 * distance.pdist(self.elec_pos).min())
+        self.R_init = params.get('R_init', 2 * parut.min_dist(self.elec_pos))
         self.h = params.get('h', 1.0)
         self.ext_x = params.get('ext_x', 0.0)
         self.ext_y = params.get('ext_y', 0.0)
@@ -173,8 +171,7 @@ class KCSD2D(object):
     # subfunctions
     #
 
-    # rename to init_model?
-    def calculate_matrices(self):
+    def init_model(self):
         """
         Prepares all the required matrices to calculate kCSD.
         """
@@ -340,7 +337,7 @@ if __name__ == '__main__':
     elec_pos = np.array([[0, 0], [0, 1], [1, 1]])
     pots = np.array([0, 1, 2])
     k = KCSD2D(elec_pos, pots)
-    k.calculate_matrices()
+    k.init_model()
     k.estimate_pots()
     k.estimate_csd()
     k.plot_all()

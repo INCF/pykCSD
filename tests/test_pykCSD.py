@@ -14,9 +14,8 @@ import numpy as np
 from pylab import *
 from numpy.linalg import norm
 
-from pykCSD.KCSD1D import KCSD1D
 from pykCSD.KCSD2D import KCSD2D
-from pykCSD.KCSD3D import KCSD3D
+from pykCSD.pykCSD import KCSD
 from pykCSD import potentials as pt
 from pykCSD import basis_functions as bf
 from pykCSD import source_distribution as sd
@@ -27,8 +26,8 @@ class TestKCSD1D(unittest.TestCase):
     def setUp(self):
         pass
 
-    def test_KCSD1D_int_pot(self):
-        """results of int_pot_1D() should be similar to kCSD1d (matlab) results"""
+    def test_KCSD_1D_int_pot(self):
+        """results of int_pot_1D() should be similar to matlab results"""
         result_fpath = 'tests/test_datasets/KCSD1D/expected_pot_intargs.dat'
         param_fpath = 'tests/test_datasets/KCSD1D/intarg_parameters.dat'
         expected_results = np.loadtxt(result_fpath, delimiter=',')
@@ -52,105 +51,57 @@ class TestKCSD1D(unittest.TestCase):
             # print 'ex:', expected_result, ' kcsd:', kcsd_result
             self.assertAlmostEqual(expected_result, kcsd_result, places=3)
 
-    def test_KCSD1D_pot_estimation_two_electrodes(self):
-        """KCSD1D calculated pots should be similar to matlab calculated pots"""
-        # this is left only to show differences from the matlab version
-        """params = {'x_min': 0.0, 'x_max': 1.0,
-                    'x': np.array([0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0]),
-                'source_type': 'gauss_lim'}
-        k = KCSD1D(elec_pos=np.array([0.2, 0.7]),
-                   sampled_pots=np.array([1.0, 0.5]),
-                   params=params)
-        k.calculate_matrices()
-        k.estimate_pots()
-        fpath = 'tests/test_datasets/KCSD1D/2_elec_pot.dat'
-        reference_pots = np.loadtxt(fpath, skiprows=5)
-
-        for i, expected_pot in enumerate(reference_pots):
-            print 'kcsd:', k.estimated_pots[i], 'expected:', expected_pot
-        plot(k.space_X, reference_pots)
-        plot(k.space_X, k.estimated_pots)
-        show()
-        for i, expected_pot in enumerate(reference_pots):
-            self.assertAlmostEqual(k.estimated_pots[i], expected_pot, places=1)
-        """
-        pass
-
-    def test_KCSD1D_csd_estimation_two_electrodes(self):
-        """KCSD1D calculated CSD should be similar to matlab calculated CSD"""
-        # this is left only to show differences from the matlab version
-        """params = {'x_min': 0.0, 'x_max': 1.0,
-                 'x': np.array([0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0]),
-                 'source_type': 'gauss_lim'}
-        k = KCSD1D(elec_pos=np.array([0.2, 0.7]),
-                   sampled_pots=np.array([1.0, 0.5]),
-                   params=params)
-        k.calculate_matrices()
-        k.estimate_csd()
-        fpath = 'tests/test_datasets/KCSD1D/2_elec_csd.dat'
-        reference_csd = np.loadtxt(fpath, skiprows=5)
-        for i, expected_csd in enumerate(reference_csd):
-            print 'csd:', k.estimated_csd[i], 'expected:', expected_csd
-
-        for i, expected_csd in enumerate(reference_csd):
-            self.assertAlmostEqual(k.estimated_csd[i], expected_csd, places=0)
-        """
-        pass
-
-    def test_KCSD1D_cross_validation_two_electrodes(self):
+    def test_KCSD_1D_cross_validation_two_electrodes(self):
         """cross validation should promote high lambdas in this case"""
 
         params = {'x_min': 0.0, 'x_max': 1.0, 'gdX': 0.1,
                   'source_type': 'gauss_lim'}
-        k = KCSD1D(elec_pos=np.array([0.2, 0.7]),
-                   sampled_pots=np.array([1.0, 0.5]),
-                   params=params)
-        k.calculate_matrices()
+        k = KCSD(elec_pos=np.array([[0.2], [0.7]]),
+                 sampled_pots=np.array([1.0, 0.5]),
+                 params=params)
         k.estimate_pots()
         lambdas = np.array([0.1, 0.5, 1.0])
-        k.lambd = k.choose_lambda(lambdas)
-        self.assertEquals(k.lambd, 1.0)
+        k.solver.lambd = k.solver.choose_lambda(lambdas)
+        self.assertEquals(k.solver.lambd, 1.0)
 
-    def test_KCSD1D_zero_pot(self):
+    def test_KCSD_1D_zero_pot(self):
         """if measured potential is 0, the calculated potential should be 0"""
 
         params = {'n_sources': 20, 'dist_density': 20,
                   'source_type': 'gauss_lim'}
-        k_zero = KCSD1D(elec_pos=np.array([1.0, 2.0, 3.0, 4.0, 5.0]),
-                        sampled_pots=[0.0, 0.0, 0.0, 0.0, 0.0],
-                        params=params)
-        k_zero.calculate_matrices()
+        k_zero = KCSD(elec_pos=np.array([[1.0], [2.0], [3.0], [4.0], [5.0]]),
+                      sampled_pots=np.array([0.0, 0.0, 0.0, 0.0, 0.0]),
+                      params=params)
         k_zero.estimate_pots()
-        self.assertAlmostEqual(norm(k_zero.estimated_pots), 0.0, places=10)
+        self.assertAlmostEqual(norm(k_zero.solver.estimated_pots), 0.0, places=10)
 
-    def test_KCSD1D_zero_csd(self):
+    def test_KCSD_1D_zero_csd(self):
         """if measured potential is 0, the calculated CSD should be 0"""
 
         params = {'n_sources': 20, 'dist_density': 20,
                   'source_type': 'gauss_lim'}
-        k_zero = KCSD1D(elec_pos=np.array([1.0, 2.0, 3.0, 4.0, 5.0]),
-                        sampled_pots=[0.0, 0.0, 0.0, 0.0, 0.0],
-                        params=params)
-        k_zero.calculate_matrices()
+        k_zero = KCSD(elec_pos=np.array([[1.0], [2.0], [3.0], [4.0], [5.0]]),
+                      sampled_pots=np.array([0.0, 0.0, 0.0, 0.0, 0.0]),
+                      params=params)
         k_zero.estimate_csd()
-        self.assertAlmostEqual(norm(k_zero.estimated_csd), 0.0, places=10)
+        self.assertAlmostEqual(norm(k_zero.solver.estimated_csd), 0.0, places=10)
 
-    def test_KCSD1D_incorrect_electrode_number(self):
+    def test_KCSD_1D_incorrect_electrode_number(self):
         """if there are more electrodes than pots, it should raise exception"""
         with self.assertRaises(Exception):
-            k = KCSD1D(elec_pos=[0, 1, 2], sampled_pots=[0, 1])
+            k = KCSD(elec_pos=np.array([[0], [1], [2]]), sampled_pots=[0, 1])
 
-    def test_KCSD1D_duplicated_electrode(self):
+    def test_KCSD_1D_duplicated_electrode(self):
         """if two electrodes are at the same spot, it should raise exception"""
         with self.assertRaises(Exception):
-            k = KCSD1D(elec_pos=[0, 0], sampled_pots=[0, 0])
+            k = KCSD(elec_pos=np.array([[0], [0]]), sampled_pots=[0, 0])
 
-    def test_KCSD1D_pot_time_frames(self):
+    def test_KCSD_1D_pot_time_frames(self):
         """given array of dimension (pots, time), calculate pots for every time frame"""
         # missing functionality
         pass
 
-    def test_KCSD1D_csd_time_frames(self):
+    def test_KCSD_1D_csd_time_frames(self):
         """given array of dimension (pots, time), calculate csd for every time frame"""
         # missing functionality
         pass
@@ -175,55 +126,52 @@ class TestKCSD1D_full_reconstruction(unittest.TestCase):
             pot *= 1.0/(2 * self.sigma)
             return pot
 
-        self.elec_pos = np.linspace(self.xmin, self.xmax, 20)
+        self.elec_pos = np.array([[x] for x in np.linspace(self.xmin, self.xmax, 20)])
         self.true_pots = [calculate_pot(self.true_csd, self.x, x0) for x0 in self.x]
         self.meas_pot = np.array([calculate_pot(self.true_csd, self.x, x0) for x0 in self.elec_pos])
 
-    def test_KCSD1D_pot_reconstruction(self):
+    def test_KCSD_1D_pot_reconstruction(self):
         """reconstructed pots should be similar to model pots"""
 
         params = {'sigma': self.sigma, 'source_type': 'gauss_lim',
                   'x_min': self.xmin, 'x_max': self.xmax,
                   'h': self.h, 'n_src': 20}
-        k = KCSD1D(self.elec_pos, self.meas_pot, params)
-        k.calculate_matrices()
+        k = KCSD(self.elec_pos, self.meas_pot, params)
         k.estimate_pots()
         """print np.max(k.estimated_pots)
         plot(k.space_X, k.estimated_pots)
         plot(self.x, self.true_pots)
         scatter(k.elec_pos, k.sampled_pots)
         show()"""
-        for estimated_pot, true_pot in zip(k.estimated_pots, self.true_pots):
+        for estimated_pot, true_pot in zip(k.solver.estimated_pots, self.true_pots):
             self.assertAlmostEqual(estimated_pot, true_pot, places=1)
 
-    def test_KCSD1D_csd_reconstruction(self):
+    def test_KCSD_1D_csd_reconstruction(self):
         """reconstructed csd should be similar to model csd"""
 
         params = {'sigma': self.sigma, 'source_type': 'gauss_lim',
                   'x_min': self.xmin, 'x_max': self.xmax, 'h': self.h}
-        k = KCSD1D(self.elec_pos, self.meas_pot, params)
-        k.calculate_matrices()
+        k = KCSD(self.elec_pos, self.meas_pot, params)
         k.estimate_csd()
         """print np.max(k.estimated_csd)
         plot(k.estimated_csd)
         plot(self.true_csd)
         show()
         print k.X_src"""
-        for estimated_csd, true_csd in zip(k.estimated_csd, self.true_csd):
+        for estimated_csd, true_csd in zip(k.solver.estimated_csd, self.true_csd):
             self.assertAlmostEqual(estimated_csd, true_csd, places=1)
 
-    def test_KCSD1D_lambda_choice(self):
+    def test_KCSD_1D_lambda_choice(self):
         """for potentials calculated from model, lambda < 1.0"""
 
         params = {'sigma': self.sigma, 'source_type': 'gauss_lim',
                   'x_min': -5.0, 'x_max': 10.0, 'h': self.h}
-        k = KCSD1D(self.elec_pos, self.meas_pot, params)
-        k.calculate_matrices()
+        k = KCSD(self.elec_pos, self.meas_pot, params)
         lambdas = np.array([100.0/2**n for n in xrange(1, 20)])
-        k.lambd = k.choose_lambda(lambdas)
-        k.estimate_pots()
+        k.solver.lambd = k.solver.choose_lambda(lambdas)
+        k.solver.estimate_pots()
 
-        self.assertLess(k.lambd, 1.0)
+        self.assertLess(k.solver.lambd, 1.0)
 
 
 class TestKCSD2D(unittest.TestCase):
@@ -231,7 +179,7 @@ class TestKCSD2D(unittest.TestCase):
     def setUp(self):
         pass
 
-    def test_KCSD2D_int_pot(self):
+    def test_KCSD_2D_int_pot(self):
         """results of int_pot_2D() should be similar to matlab results"""
         result_fpath = 'tests/test_datasets/KCSD2D/expected_pot_intargs_2D.dat'
         param_fpath = 'tests/test_datasets/KCSD2D/intarg_parameters_2D.dat'
@@ -248,22 +196,20 @@ class TestKCSD2D(unittest.TestCase):
                                         basis_func=bf.gauss_rescale_lim_2D)
             self.assertAlmostEqual(expected_result, kcsd_result, places=3)
 
-    def test_KCSD2D_zero_pot(self):
+    def test_KCSD_2D_zero_pot(self):
         elec_pos = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
         pots = np.array([0, 0, 0, 0])
-        k = KCSD2D(elec_pos, pots)
-        k.calculate_matrices()
-        k.estimate_pots()
-        for pot in k.estimated_pots.flatten():
+        k = KCSD(elec_pos, pots)
+        k.solver.estimate_pots()
+        for pot in k.solver.estimated_pots.flatten():
             self.assertAlmostEqual(pot, 0.0, places=5)
 
     def test_KCSD2D_zero_csd(self):
         elec_pos = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
         pots = np.array([0, 0, 0, 0])
-        k = KCSD2D(elec_pos, pots)
-        k.calculate_matrices()
-        k.estimate_csd()
-        for csd in k.estimated_csd.flatten():
+        k = KCSD(elec_pos, pots)
+        k.solver.estimate_csd()
+        for csd in k.solver.estimated_csd.flatten():
             self.assertAlmostEqual(csd, 0.0, places=5)
 
     def tearDown(self):
@@ -279,7 +225,7 @@ class TestKCSD2D_full_recostruction(unittest.TestCase):
         pots = np.loadtxt(pots_fpath, delimiter=',')
         params = {'n_sources': 9, 'gdX': 0.1, 'gdY': 0.1}
         self.k = KCSD2D(elec_pos, pots, params)
-        self.k.calculate_matrices()
+        self.k.init_model()
 
     def test_KCSD2D_R_five_electrodes(self):
         fpath = 'tests/test_datasets/KCSD2D/five_elec_R.dat'
@@ -290,8 +236,8 @@ class TestKCSD2D_full_recostruction(unittest.TestCase):
         fpath = 'tests/test_datasets/KCSD2D/five_elec_bpot.dat'
         expected_b_pot = np.loadtxt(fpath, delimiter=',')
         err = norm(expected_b_pot - self.k.b_pot_matrix, ord=2)
-        # comparison_plot_2D(expected_b_pot, self.k.b_pot_matrix,
-        #                   'matlab', 'python')
+        # comparison_plot_2D(expected_b_pot, self.k.solver.b_pot_matrix,
+        #                    'matlab', 'python')
         self.assertAlmostEqual(err, 0.0, places=3)
 
     def test_KCSD2D_k_pot_five_electrodes(self):
@@ -311,7 +257,7 @@ class TestKCSD2D_full_recostruction(unittest.TestCase):
     def test_KCSD2D_b_src_matrix_five_electrodes(self):
         fpath = 'tests/test_datasets/KCSD2D/five_elec_b_src_matrix.dat'
         expected_b_src_matrix = np.loadtxt(fpath, delimiter=',')
-        # comparison_plot_2D(expected_b_src_matrix, self.k.b_src_matrix,
+        # comparison_plot_2D(expected_b_src_matrix, self.k.solver.b_src_matrix,
         #                   'matlab', 'python')
         err = norm(expected_b_src_matrix - self.k.b_src_matrix)
         self.assertAlmostEqual(err, 0.0, places=4)
@@ -346,16 +292,9 @@ class TestKCSD2D_full_recostruction(unittest.TestCase):
 class TestKCSD3D_full_recostruction(unittest.TestCase):
 
     def setUp(self):
-        """ elec_fpath = 'tests/test_datasets/KCSD2D/five_elec_elecs.dat'
-        pots_fpath = 'tests/test_datasets/KCSD2D/five_elec_pots.dat'
-        elec_pos = np.loadtxt(elec_fpath, delimiter=',')
-        pots = np.loadtxt(pots_fpath, delimiter=',')
-        params = {'n_sources': 9, 'gdX': 0.1, 'gdY': 0.1}
-        self.k = KCSD2D(elec_pos, pots, params)
-        self.k.calculate_matrices()"""
         pass
 
-    def test_KCSD3D_zero_pot(self):
+    def test_KCSD_3D_zero_pot(self):
         """if the input pots are zero, estimated pots and csd should be zero"""
         elec_pos = np.array([(0, 0, 0), (0, 0, 1), (0, 1, 0), (1, 0, 0),
                             (0, 1, 1), (1, 1, 0), (1, 0, 1), (1, 1, 1)])
@@ -366,14 +305,16 @@ class TestKCSD3D_full_recostruction(unittest.TestCase):
             'gdZ': 0.2,
             'n_src': 10
         }
-        k = KCSD3D(elec_pos, pots, params)
-        k.calculate_matrices()
+        k = KCSD(elec_pos, pots, params)
         k.estimate_pots()
         k.estimate_csd()
-        for pot in k.estimated_pots.flatten():
+        for pot in k.solver.estimated_pots.flatten():
             self.assertAlmostEqual(pot, 0.0, places=5)
-        for csd in k.estimated_csd.flatten():
+        for csd in k.solver.estimated_csd.flatten():
             self.assertAlmostEqual(csd, 0.0, places=5)
+
+    def test_KCSD_3D_model_pots(self):
+        pass
 
     def tearDown(self):
         pass
@@ -385,33 +326,57 @@ class TestKCSD_all_utils(unittest.TestCase):
         pass
 
     def test_make_src1D_no_ext_4_src(self):
-        """ """
         X = np.array([0.0, 0.1, 0.2, 0.3])
         (X_src, R) = sd.make_src_1D(X=X, ext_x=0.0, n_src=4, R_init=0.2)
         for i in xrange(len(X_src)):
             self.assertAlmostEqual(X_src[i], X[i], places=6)
 
     def test_make_src1D_negative_coords_4_src(self):
-        """ """
         X = np.array([-0.5, -0.3, -0.1, 0.1])
         (X_src, R) = sd.make_src_1D(X=X, ext_x=0.0, n_src=4, R_init=0.2)
         for i in xrange(len(X_src)):
             self.assertAlmostEqual(X_src[i], X[i], places=6)
 
     def test_make_src1D_with_ext_6_src(self):
-        """ """
         X = np.array([0.0, 0.1, 0.2, 0.3])
         (X_src, R) = sd.make_src_1D(X=X, ext_x=0.1, n_src=6, R_init=0.2)
         expected_X_src = [-0.1, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5]
         for i in xrange(len(X_src)):
             self.assertAlmostEqual(X_src[i], expected_X_src[i], places=6)
 
-    def test_make_src2D(self):
+    def test_make_src1D_with_ext_6_src_translated(self):
+        X = np.array([0.0, 0.1, 0.2, 0.3]) - 10.0
+        (X_src, R) = sd.make_src_1D(X=X, ext_x=0.1, n_src=6, R_init=0.2)
+        expected_X_src = np.array([-0.1, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5]) - 10.0
+        for i, src in enumerate(X_src):
+            self.assertAlmostEqual(src, expected_X_src[i], places=6)
+
+    def test_make_src2D_regular(self):
+        xmin = 0.0
+        xmax = 1.0
+        ymin = 0.0
+        ymax = 1.0
+        ext_x = 0.0
+        ext_y = 0.0
+        nx = 2
+        ny = 2
+        lin_x = np.linspace(xmin - ext_x, xmax + ext_x, nx)
+        lin_y = np.linspace(ymin - ext_y, ymax + ext_y, ny)
+        X, Y = np.meshgrid(lin_x, lin_y)
+        X_src, Y_src, R = sd.make_src_2D(X=X, Y=Y, n_src=nx*ny,
+                                         ext_x=ext_x, ext_y=ext_y,
+                                         R_init=0.5)
+        # expected_X_src = [0.0, 0.33, 0.66]
+        print X_src
+
+    def test_make_src2D_translated(self):
+        pass
+
+    def test_make_src3D_regular(self):
         """ """
         pass
 
-    def test_make_src3D(self):
-        """ """
+    def test_make_src3D_translated(self):
         pass
 
     def tearDown(self):

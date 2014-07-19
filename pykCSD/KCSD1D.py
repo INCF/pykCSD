@@ -12,6 +12,7 @@ import source_distribution as sd
 import potentials as pt
 import dist_table_utils as dt
 import plotting_utils as plut
+import parameters_utils as parut
 
 
 class KCSD1D(object):
@@ -59,8 +60,8 @@ class KCSD1D(object):
                     length of space extension: x_min-ext ... x_max+ext
                 'gdX' : float
                     space increment (granularity) in the estimation space
-                'cross_validation' : str
-                    type of index generator
+                'cv_generator' : str
+                    type of index generator for cross_validation
                 'lambd' : float
                     regularization parameter for ridge regression
         """
@@ -70,14 +71,13 @@ class KCSD1D(object):
         self.set_parameters(params)
 
     def validate_parameters(self, elec_pos, sampled_pots):
-        if len(elec_pos) != len(sampled_pots):
+        if elec_pos.shape[0] != sampled_pots.shape[0]:
             raise Exception("Number of measured potentials is not equal\
                              to electrode number!")
-        if len(elec_pos) < 2:
+        if elec_pos.shape[0] < 2:
             raise Exception("Number of electrodes must be at least 2!")
-        elec_set = set(elec_pos)
-        if len(elec_pos) != len(elec_set):
-            raise Exception("Error! Duplicate electrode!")
+        if parut.check_for_duplicated_electrodes(elec_pos) is False:
+            raise Exception("Error! Duplicated electrode!")
 
     def set_parameters(self, params):
         # assign value from params or default value
@@ -87,11 +87,10 @@ class KCSD1D(object):
         self.xmin = params.get('x_min', np.min(self.elec_pos))
         self.dist_density = params.get('dist_density', 100)
         self.lambd = params.get('lambda', 0.0)
-        self.R_init = params.get('R_init',
-                                 2*abs(self.elec_pos[1] - self.elec_pos[0]))
+        self.R_init = params.get('R_init', 2 * parut.min_dist(self.elec_pos))
         self.ext = params.get('ext', 0.0)
         self.h = params.get('h', 1.0)
-        self.gdX = params.get('gdX', 0.01*(self.xmax - self.xmin))
+        self.gdX = params.get('gdX', 0.01 * (self.xmax - self.xmin))
 
         self.source_type = params.get('source_type', 'gauss')
         basis_types = {
@@ -105,9 +104,10 @@ class KCSD1D(object):
             self.basis = basis_types.get(self.source_type)
 
         self.lambdas = np.array([1.0 / 2**n for n in xrange(0, 20)])
-        # space_X is the estimation area
+
         nx = np.ceil((self.xmax - self.xmin)/self.gdX)
-        # ASK: should sources be placed over the extended area or the basic?
+
+        # space_X is the estimation area
         self.space_X = np.linspace(self.xmin - self.ext,
                                    self.xmax + self.ext,
                                    nx)
@@ -157,7 +157,7 @@ class KCSD1D(object):
     # subfunctions
     #
 
-    def calculate_matrices(self):
+    def init_model(self):
         """
         Prepares all the required matrices to calculate kCSD.
         """
@@ -181,8 +181,8 @@ class KCSD1D(object):
 
         for i in xrange(0, self.dist_density):
             pos = (i/self.dist_density) * self.dist_max
-            self.dist_table[i] = pt.b_pot_quad(0, pos, self.R, self.h,
-                                               self.sigma, self.basis)
+            self.dist_table[i] = pt.b_pot_1d_cont(0, pos, self.R, self.h,
+                                                  self.sigma, self.basis)
 
     def calculate_b_pot_matrix(self):
         """
@@ -289,7 +289,7 @@ if __name__ == '__main__':
     }
 
     k = KCSD1D(elec_pos, pots, params=params)
-    k.calculate_matrices()
+    k.init_model()
     print "lambda=", k.choose_lambda(k.lambdas)
     k.estimate_pots()
     k.estimate_csd()

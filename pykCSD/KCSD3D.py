@@ -4,7 +4,6 @@ from __future__ import division
 import numpy as np
 from numpy import dot, identity
 from numpy.linalg import norm, inv
-import scipy.spatial.distance as distance
 
 import cross_validation as cv
 import basis_functions as bf
@@ -12,6 +11,7 @@ import source_distribution as sd
 import potentials as pt
 import dist_table_utils as dt
 import plotting_utils as plut
+import parameters_utils as parut
 
 
 class KCSD3D(object):
@@ -30,28 +30,28 @@ class KCSD3D(object):
                 potentials measured by electrodes
             params : set, optional
                 configuration parameters, that may contain the following keys:
-                    'sigma' : float
-                        space conductance of the medium
-                    'n_sources' : int
-                        number of sources
-                    'source_type' : str
-                        basis function type ('gauss', 'step', 'gauss_lim')
-                    'R_init' : float
-                        demanded thickness of the basis element
-                    'h' : float
-                        cylinder radius
-                    'dist_density' : int
-                        resolution of the dist_table
-                    'x_min', 'x_max', 'y_min', 'y_max' : floats
-                        boundaries for CSD estimation space
-                    'ext' : float
-                        length of space extension: x_min-ext ... x_max+ext
-                    'gdX', 'gdY' : float
-                        space increments in the estimation space
-                    'cross_validation' : str
-                        type of index generator
-                    'lambd' : float
-                        regularization parameter for ridge regression
+                'sigma' : float
+                    space conductance of the medium
+                'n_sources' : int
+                    number of sources
+                'source_type' : str
+                    basis function type ('gauss', 'step', 'gauss_lim')
+                'R_init' : float
+                    demanded thickness of the basis element
+                'h' : float
+                    cylinder radius
+                'dist_density' : int
+                    resolution of the dist_table
+                'x_min', 'x_max', 'y_min', 'y_max' : floats
+                    boundaries for CSD estimation space
+                'ext' : float
+                    length of space extension: x_min-ext ... x_max+ext
+                'gdX', 'gdY' : float
+                    space increments in the estimation space
+                'cv_generator' : str
+                    type of index generator for cross_validation
+                'lambd' : float
+                    regularization parameter for ridge regression
         """
         self.validate_parameters(elec_pos, sampled_pots)
         self.elec_pos = elec_pos
@@ -64,6 +64,8 @@ class KCSD3D(object):
                              to electrode number!")
         if elec_pos.shape[0] < 4:
             raise Exception("Number of electrodes must be at least 4!")
+        if parut.check_for_duplicated_electrodes(elec_pos) is False:
+            raise Exception("Error! Duplicated electrode!")
 
     def set_parameters(self, params):
         self.sigma = params.get('sigma', 1.0)
@@ -76,8 +78,7 @@ class KCSD3D(object):
         self.zmin = params.get('z_min', np.min(self.elec_pos[:, 2]))
 
         self.lambd = params.get('lambda', 0.0)
-        self.R_init = params.get('R_init',
-                                 2 * distance.pdist(self.elec_pos).min())
+        self.R_init = params.get('R_init', 2 * parut.min_dist(self.elec_pos))
         self.h = params.get('h', 1.0)
         self.ext_X = params.get('ext_X', 0.0)
         self.ext_Y = params.get('ext_Y', 0.0)
@@ -177,7 +178,7 @@ class KCSD3D(object):
     # subfunctions
     #
 
-    def calculate_matrices(self):
+    def init_model(self):
         """
         Prepares all the required matrices to calculate CSD and potentials.
         """
@@ -358,7 +359,7 @@ if __name__ == '__main__':
         'n_sources': 64,
     }
     k = KCSD3D(elec_pos, pots, params)
-    k.calculate_matrices()
+    k.init_model()
 
     k.estimate_pots()
     k.estimate_csd()

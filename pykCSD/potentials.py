@@ -15,21 +15,7 @@ This consists of both integrands and integrals.
 """
 
 
-def int_pot_1D(src, arg, curr_pos, h, R, sigma, basis_func):
-    """
-    Returns contribution of a single source as a function of distance
-    """
-    pot = (((arg - curr_pos)**2 + h**2)**0.5 - abs(arg - curr_pos))  # h czy R
-    pot *= 1./(2 * sigma)
-    # pot *= (np.abs(x-xp)<2*h) #???
-
-    # for this formula look at formula (8) from Pettersen et al., 2006
-    pot *= basis_func(src, curr_pos, R)
-
-    return pot
-
-
-def b_pot_quad(src, arg, R, h, sigma, basis_func):
+def b_pot_1d_cont(src, arg, R, h, sigma, basis_func):
     """
     Returns potential as a function of distance from the source.
     """
@@ -40,6 +26,32 @@ def b_pot_quad(src, arg, R, h, sigma, basis_func):
 
     pot = np.trapz(potx, x)
 
+    return pot
+
+
+def int_pot_1D(src, arg, curr_pos, h, R, sigma, basis_func):
+    """
+    Returns contribution of a single source as a function of distance
+    """
+    pot = (((arg - curr_pos)**2 + h**2)**0.5 - abs(arg - curr_pos))  # h czy R
+    pot *= 1./(2 * sigma)
+
+    # for this formula look at formula (8) from Pettersen et al., 2006
+    pot *= basis_func(src, curr_pos, R)
+
+    return pot
+
+
+def b_pot_2d_cont(x, R, h, sigma, src_type):
+    """
+    Returns the value of the potential at point (x,0) generated
+    by a basis source located at (0,0)
+    """
+    pot, err = integrate.dblquad(int_pot_2D, -R, R,
+                                 lambda x: -R, lambda x: R,
+                                 args=(x, R, h, src_type),
+                                 epsrel=1e-2, epsabs=0)
+    pot *= 1./(2.0*pi*sigma)
     return pot
 
 
@@ -65,7 +77,6 @@ def int_pot_2D(xp, yp, x, R, h, basis_func):
     Returns
     ------------
     pot : float
-
     """
     y = ((x-xp)**2 + yp**2)**(0.5)
     if y < 0.00001:
@@ -76,16 +87,16 @@ def int_pot_2D(xp, yp, x, R, h, basis_func):
     return pot
 
 
-def b_pot_2d_cont(x, R, h, sigma, src_type):
+def b_pot_3d_cont(x, R, h, sigma, basis_func):
     """
-    Returns the value of the potential at point (x,0) generated
-    by a basis source located at (0,0)
+    Returns the value of the potential at point (x,y,0) generated
+    by a basis source located at (0,0,0)
     """
-    pot, err = integrate.dblquad(int_pot_2D, -R, R,
+    pot, err = integrate.tplquad(int_pot_3D, -R, R,
                                  lambda x: -R, lambda x: R,
-                                 args=(x, R, h, src_type),
-                                 epsrel=1e-2, epsabs=0)
-    pot *= 1./(2.0*pi*sigma)
+                                 lambda x, y: -R, lambda x, y: R,
+                                 args=(x, R, h, basis_func))
+    pot *= 1./(2.0*pi*sigma)  # TODO check the constant
     return pot
 
 
@@ -120,16 +131,15 @@ def int_pot_3D(xp, yp, zp, x, R, h, basis_func):
     return y
 
 
-def b_pot_3d_cont(x, R, h, sigma, basis_func):
+def b_pot_3d_mc(x, R, h, sigma, basis_func=bf.gauss_rescale_3D):
     """
-    Returns the value of the potential at point (x,y,0) generated
-    by a basis source located at (0,0,0)
+    Calculate potential in the 3D case using Monte Carlo integration.
+    It utilizes the MISER algorithm
     """
-    pot, err = integrate.tplquad(int_pot_3D, -R, R,
-                                 lambda x: -R, lambda x: R,
-                                 lambda x, y: -R, lambda x, y: R,
-                                 args=(x, R, h, basis_func))
-    pot *= 1./(2.0*pi*sigma)  # TODO check the constant
+    pot, err = mcmiser(int_pot_3D_mc, npoints=1e5,
+                       xl=[-R, -R, -R], xu=[R, R, R],
+                       nprocs=4, args=(x, R, h, basis_func))
+    pot *= 1./(4.0*pi*sigma)
     return pot
 
 
@@ -139,14 +149,3 @@ def int_pot_3D_mc(xyz, x, R, h, basis_func):
     """
     xp, yp, zp = xyz
     return int_pot_3D(xp, yp, zp, x, R, h, basis_func)
-
-
-def b_pot_3d_mc(x, R, h, sigma, basis_func=bf.gauss_rescale_3D):
-    """
-    Calculate potential in the 3D case using Monte Carlo integration
-    """
-    pot, err = mcmiser(int_pot_3D_mc, npoints=1e5,
-                       xl=[-R, -R, -R], xu=[R, R, R],
-                       nprocs=4, args=(x, R, h, basis_func))
-    pot *= 1./(4.0*pi*sigma)
-    return pot
