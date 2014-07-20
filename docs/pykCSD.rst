@@ -52,6 +52,14 @@ pykCSD.dist_table_utils module
     :undoc-members:
     :show-inheritance:
 
+pykCSD.parameters_utils module
+------------------------------
+
+.. automodule:: pykCSD.parameters_utils
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 pykCSD.plotting_utils module
 ----------------------------
 

@@ -4,6 +4,8 @@ pykCSD
 
 Kernel Current Source Density is a recently developed method for estimating the density of trans-membrane current sources, which can be used for a detailed study of neuronal synaptic dynamics.
 
+It can estimate current source density from potentials measured with irregularly placed linear, planar and spatial electrodes.
+
 .. image:: https://badge.fury.io/py/pykCSD.png
     :target: http://badge.fury.io/py/pykCSD
     

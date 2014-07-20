@@ -34,8 +34,6 @@ basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 sys.path.insert(0, basedir)
 
 import pykCSD
-import sphinxcontrib.napoleon
-from sphinxcontrib.napoleon.docstring import NumpyDocstring
 
 # Napoleon settings
 napoleon_google_docstring = False
