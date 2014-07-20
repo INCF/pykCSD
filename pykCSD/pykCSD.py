@@ -85,6 +85,9 @@ class KCSD(object):
         pass
 
     def plot_all(self):
+        """
+        Quick plot of input and output data.
+        """
         self.solver.plot_all()
 
 if __name__ == '__main__':

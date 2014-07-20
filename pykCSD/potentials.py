@@ -20,7 +20,7 @@ def b_pot_1d_cont(src, arg, R, h, sigma, basis_func):
     Returns potential as a function of distance from the source.
     """
     resolution = 51
-    x = np.linspace(src - 3*R, src + 3*R, resolution)
+    x = np.linspace(src - 4*R, src + 4*R, resolution)
     potx = np.array([int_pot_1D(src, arg, current_pos, h, R, sigma, basis_func)
                     for current_pos in x])
 

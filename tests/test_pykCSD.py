@@ -351,32 +351,114 @@ class TestKCSD_all_utils(unittest.TestCase):
         for i, src in enumerate(X_src):
             self.assertAlmostEqual(src, expected_X_src[i], places=6)
 
-    def test_make_src2D_regular(self):
-        xmin = 0.0
-        xmax = 1.0
-        ymin = 0.0
-        ymax = 1.0
-        ext_x = 0.0
-        ext_y = 0.0
-        nx = 2
-        ny = 2
+    def test_make_src2D_regular_grid(self):
+        xmin, xmax = 0.0, 1.0
+        ymin, ymax = 0.0, 1.0
+        ext_x, ext_y = 0.0, 0.0
+        nx, ny = 2, 2
         lin_x = np.linspace(xmin - ext_x, xmax + ext_x, nx)
         lin_y = np.linspace(ymin - ext_y, ymax + ext_y, ny)
         X, Y = np.meshgrid(lin_x, lin_y)
         X_src, Y_src, R = sd.make_src_2D(X=X, Y=Y, n_src=nx*ny,
                                          ext_x=ext_x, ext_y=ext_y,
                                          R_init=0.5)
-        # expected_X_src = [0.0, 0.33, 0.66]
-        print X_src
+        expected_X_src = [[-0.5, 0.5, 1.5],
+                          [-0.5, 0.5, 1.5],
+                          [-0.5, 0.5, 1.5]]
+        expected_Y_src = [[-0.5, -0.5, -0.5],
+                          [0.5, 0.5, 0.5],
+                          [1.5, 1.5, 1.5]]
+        for x_row, xe_row in zip(X_src, expected_X_src):
+            for x, xe in zip(x_row, xe_row):
+                self.assertEquals(x, xe)
+        for y_row, ye_row in zip(Y_src, expected_Y_src):
+            for y, ye in zip(y_row, ye_row):
+                self.assertEquals(y, ye)
 
-    def test_make_src2D_translated(self):
-        pass
+    def test_make_src2D_translated_grid(self):
+        xmin, xmax = -1.5, -0.5
+        ymin, ymax = -1.0, 0.0
+        ext_x, ext_y = 0.0, 0.0
+        nx, ny = 2, 2
+        lin_x = np.linspace(xmin - ext_x, xmax + ext_x, nx)
+        lin_y = np.linspace(ymin - ext_y, ymax + ext_y, ny)
+        X, Y = np.meshgrid(lin_x, lin_y)
+        X_src, Y_src, R = sd.make_src_2D(X=X, Y=Y, n_src=nx*ny,
+                                         ext_x=ext_x, ext_y=ext_y,
+                                         R_init=0.5)
+        expected_X_src = [[-2.0, -1.0, 0.0],
+                          [-2.0, -1.0, 0.0],
+                          [-2.0, -1.0, 0.0]]
+        expected_Y_src = [[-1.5, -1.5, -1.5],
+                          [-0.5, -0.5, -0.5],
+                          [0.5, 0.5, 0.5]]
+        for x_row, xe_row in zip(X_src, expected_X_src):
+            for x, xe in zip(x_row, xe_row):
+                self.assertEquals(x, xe)
+        for y_row, ye_row in zip(Y_src, expected_Y_src):
+            for y, ye in zip(y_row, ye_row):
+                self.assertEquals(y, ye)
 
-    def test_make_src3D_regular(self):
+    def test_make_src3D_regular_grid(self):
         """ """
-        pass
+        xmin, xmax = 0.0, 1.0
+        ymin, ymax = 0.0, 1.0
+        zmin, zmax = 0.0, 1.0
+        ext_x, ext_y, ext_z = 0.0, 0.0, 0.0
+        nx, ny, nz = 3, 3, 3
+        lin_x = np.linspace(xmin - ext_x, xmax + ext_x, nx)
+        lin_y = np.linspace(ymin - ext_y, ymax + ext_y, ny)
+        lin_z = np.linspace(zmin - ext_z, zmax + ext_z, nz)
+        X, Y, Z = np.meshgrid(lin_x, lin_y, lin_z)
+        X_src, Y_src, Z_src, R = sd.make_src_3D(X=X, Y=Y, Z=Z, n_src=nx*ny*nz,
+                                                ext_x=ext_x, ext_y=ext_y, ext_z=ext_z,
+                                                R_init=0.5)
 
-    def test_make_src3D_translated(self):
+        expected_X_src = [[[ 0.,   0.,   0. ],
+                           [ 0.5,  0.5,  0.5],
+                           [ 1.,   1.,   1. ]],
+                          [[ 0.,   0.,   0. ],
+                           [ 0.5,  0.5,  0.5],
+                           [ 1.,   1.,   1. ]],
+                          [[ 0.,   0.,   0. ],
+                           [ 0.5,  0.5,  0.5],
+                           [ 1.,   1.,   1. ]]]
+
+        for x_slice, xe_slice in zip(X_src, expected_X_src):
+            for x_row, xe_row in zip(x_slice, xe_slice):
+                for x, xe in zip(x_row, xe_row):
+                    self.assertEquals(x, xe)
+
+    def test_make_src3D_translated_grid(self):
+        xmin, xmax = -1.0, 0.0
+        ymin, ymax = 0.0, 1.0
+        zmin, zmax = 0.0, 1.0
+        ext_x, ext_y, ext_z = 0.0, 0.0, 0.0
+        nx, ny, nz = 3, 3, 3
+        lin_x = np.linspace(xmin - ext_x, xmax + ext_x, nx)
+        lin_y = np.linspace(ymin - ext_y, ymax + ext_y, ny)
+        lin_z = np.linspace(zmin - ext_z, zmax + ext_z, nz)
+        X, Y, Z = np.meshgrid(lin_x, lin_y, lin_z)
+        X_src, Y_src, Z_src, R = sd.make_src_3D(X=X, Y=Y, Z=Z, n_src=nx*ny*nz,
+                                                ext_x=ext_x, ext_y=ext_y, ext_z=ext_z,
+                                                R_init=0.5)
+        print X_src
+        expected_X_src = [[[ -1.,   -1.,   -1. ],
+                           [ -0.5,  -0.5,  -0.5],
+                           [ 0.,   0.,   0. ]],
+                          [[ -1.,   -1.,   -1. ],
+                           [ -0.5,  -0.5,  -0.5],
+                           [ 0.,   0.,   0. ]],
+                          [[ -1.,   -1.,   -1. ],
+                           [ -0.5,  -0.5,  -0.5],
+                           [ 0.,   0.,   0. ]]]
+
+        for x_slice, xe_slice in zip(X_src, expected_X_src):
+            for x_row, xe_row in zip(x_slice, xe_slice):
+                for x, xe in zip(x_row, xe_row):
+                    self.assertEquals(x, xe)
+
+    def test_basis_normalized(self):
         pass
 
     def tearDown(self):
