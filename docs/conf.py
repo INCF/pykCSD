@@ -56,7 +56,10 @@ class Mock(object):
         else:
             return Mock()
 
-MOCK_MODULES = ['pygtk', 'gtk', 'gobject', 'argparse', 'numpy', 'scipy', 'numpy.linalg', 'spatial.distance', 'skmonaco']
+MOCK_MODULES = ['pygtk', 'gtk', 'gobject', 'argparse', 
+                'numpy', 'scipy', 'numpy.linalg', 'spatial.distance', 
+                'skmonaco', 'scipy.interpolate', 'numpy.distutils.core',
+                'sklearn.cross_validation']
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = Mock()
 
