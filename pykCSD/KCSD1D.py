@@ -54,10 +54,10 @@ class KCSD1D(object):
                     cylinder radius
                 'dist_density' : int
                     resolution of the dist_table
-                'x_min', 'x_max' : floats
+                'xmin', 'xmax' : floats
                     boundaries for CSD estimation space
                 'ext' : float
-                    length of space extension: x_min-ext ... x_max+ext
+                    length of space extension: xmin-ext ... xmax+ext
                 'gdX' : float
                     space increment (granularity) in the estimation space
                 'cv_generator' : str
@@ -72,27 +72,30 @@ class KCSD1D(object):
 
     def validate_parameters(self, elec_pos, sampled_pots):
         if elec_pos.shape[0] != sampled_pots.shape[0]:
-            raise Exception("Number of measured potentials is not equal\
-                             to electrode number!")
+            raise Exception("Number of measured potentials is not equal "
+                            "to electrode number!")
         if elec_pos.shape[0] < 2:
             raise Exception("Number of electrodes must be at least 2!")
         if parut.check_for_duplicated_electrodes(elec_pos) is False:
             raise Exception("Error! Duplicated electrode!")
 
     def set_parameters(self, params):
-        # assign value from params or default value
-        self.sigma = params.get('sigma', 1.0)
-        self.n_sources = params.get('n_sources', 300)
-        self.xmax = params.get('x_max', np.max(self.elec_pos))
-        self.xmin = params.get('x_min', np.min(self.elec_pos))
-        self.dist_density = params.get('dist_density', 100)
-        self.lambd = params.get('lambda', 0.0)
-        self.R_init = params.get('R_init', 2 * parut.min_dist(self.elec_pos))
-        self.ext = params.get('ext', 0.0)
-        self.h = params.get('h', 1.0)
-        self.gdX = params.get('gdX', 0.01 * (self.xmax - self.xmin))
+        default_params = {
+            'sigma': 1.0,
+            'n_sources': 300,
+            'xmin': np.min(self.elec_pos),
+            'xmax': np.max(self.elec_pos),
+            'dist_density': 100,
+            'lambd': 0.0,
+            'R_init': 2 * parut.min_dist(self.elec_pos),
+            'ext': 0.0,
+            'h': 1.0,
+            'source_type': 'gauss'
+        }
+        for (prop, default) in default_params.iteritems():
+            setattr(self, prop, params.get(prop, default))
 
-        self.source_type = params.get('source_type', 'gauss')
+        self.gdX = params.get('gdX', 0.01 * (self.xmax - self.xmin))
         basis_types = {
             "step": bf.step_rescale_1D,
             "gauss": bf.gauss_rescale_1D,
@@ -276,14 +279,13 @@ class KCSD1D(object):
         return lambdas[errors == min(errors)][0]
 
 
-if __name__ == '__main__':
-    """Example"""
+def main():
     elec_pos = np.array([0.0, 0.1, 0.4, 0.7, 0.8, 1.0, 1.2, 1.7])
     pots = 0.8 * np.exp(-(elec_pos - 0.1)**2/0.2)
     pots += 0.8 * np.exp(-(elec_pos - 0.7)**2/0.1)
     params = {
-        'x_min': -1.0,
-        'x_max': 2.5,
+        'xmin': -1.0,
+        'xmax': 2.5,
         'source_type': 'step',
         'n_sources': 30
     }
@@ -294,3 +296,8 @@ if __name__ == '__main__':
     k.estimate_pots()
     k.estimate_csd()
     k.plot_all()
+
+
+if __name__ == '__main__':
+    """Example"""
+    main()

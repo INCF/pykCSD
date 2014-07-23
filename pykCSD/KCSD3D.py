@@ -68,21 +68,26 @@ class KCSD3D(object):
             raise Exception("Error! Duplicated electrode!")
 
     def set_parameters(self, params):
-        self.sigma = params.get('sigma', 1.0)
-        self.n_sources = params.get('n_sources', 100)
-        self.xmax = params.get('x_max', np.max(self.elec_pos[:, 0]))
-        self.xmin = params.get('x_min', np.min(self.elec_pos[:, 0]))
-        self.ymax = params.get('y_max', np.max(self.elec_pos[:, 1]))
-        self.ymin = params.get('y_min', np.min(self.elec_pos[:, 1]))
-        self.zmax = params.get('z_max', np.max(self.elec_pos[:, 2]))
-        self.zmin = params.get('z_min', np.min(self.elec_pos[:, 2]))
-
-        self.lambd = params.get('lambda', 0.0)
-        self.R_init = params.get('R_init', 2 * parut.min_dist(self.elec_pos))
-        self.h = params.get('h', 1.0)
-        self.ext_X = params.get('ext_X', 0.0)
-        self.ext_Y = params.get('ext_Y', 0.0)
-        self.ext_Z = params.get('ext_Z', 0.0)
+        default_params = {
+            'sigma': 1.0,
+            'n_sources': 100,
+            'xmin': np.min(self.elec_pos[:, 0]),
+            'xmax': np.max(self.elec_pos[:, 0]),
+            'ymin': np.min(self.elec_pos[:, 1]),
+            'ymax': np.max(self.elec_pos[:, 1]),
+            'zmin': np.min(self.elec_pos[:, 2]),
+            'zmax': np.max(self.elec_pos[:, 2]),
+            'dist_table_density': 100,
+            'lambd': 0.0,
+            'R_init': 2 * parut.min_dist(self.elec_pos),
+            'ext_X': 0.0,
+            'ext_Y': 0.0,
+            'ext_Z': 0.0,
+            'h': 1.0,
+            'source_type': 'gauss'
+        }
+        for (prop, default) in default_params.iteritems():
+            setattr(self, prop, params.get(prop, default))
 
         self.gdX = params.get('gdX', 0.05 * (self.xmax - self.xmin))
         self.gdY = params.get('gdY', 0.05 * (self.ymax - self.ymin))
@@ -347,7 +352,7 @@ class KCSD3D(object):
         return lambdas[errors == min(errors)][0]
 
 
-if __name__ == '__main__':
+def main():
     elec_pos = np.array([(0, 0, 0), (0, 0, 1), (0, 1, 0), (1, 0, 0),
                          (0, 1, 1), (1, 1, 0), (1, 0, 1), (1, 1, 1),
                          (0.5, 0.5, 0.5)])
@@ -365,3 +370,7 @@ if __name__ == '__main__':
     k.estimate_csd()
 
     k.plot_all()
+
+
+if __name__ == '__main__':
+    main()

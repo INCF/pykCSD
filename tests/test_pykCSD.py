@@ -414,15 +414,15 @@ class TestKCSD_all_utils(unittest.TestCase):
                                                 ext_x=ext_x, ext_y=ext_y, ext_z=ext_z,
                                                 R_init=0.5)
 
-        expected_X_src = [[[ 0.,   0.,   0. ],
-                           [ 0.5,  0.5,  0.5],
-                           [ 1.,   1.,   1. ]],
-                          [[ 0.,   0.,   0. ],
-                           [ 0.5,  0.5,  0.5],
-                           [ 1.,   1.,   1. ]],
-                          [[ 0.,   0.,   0. ],
-                           [ 0.5,  0.5,  0.5],
-                           [ 1.,   1.,   1. ]]]
+        expected_X_src = [[[0.,   0.,   0.],
+                           [0.5,  0.5,  0.5],
+                           [1.,   1.,   1.]],
+                          [[0.,   0.,   0.],
+                           [0.5,  0.5,  0.5],
+                           [1.,   1.,   1.]],
+                          [[0.,   0.,   0.],
+                           [0.5,  0.5,  0.5],
+                           [1.,   1.,   1.]]]
 
         for x_slice, xe_slice in zip(X_src, expected_X_src):
             for x_row, xe_row in zip(x_slice, xe_slice):
@@ -443,15 +443,15 @@ class TestKCSD_all_utils(unittest.TestCase):
                                                 ext_x=ext_x, ext_y=ext_y, ext_z=ext_z,
                                                 R_init=0.5)
         print X_src
-        expected_X_src = [[[ -1.,   -1.,   -1. ],
-                           [ -0.5,  -0.5,  -0.5],
-                           [ 0.,   0.,   0. ]],
-                          [[ -1.,   -1.,   -1. ],
-                           [ -0.5,  -0.5,  -0.5],
-                           [ 0.,   0.,   0. ]],
-                          [[ -1.,   -1.,   -1. ],
-                           [ -0.5,  -0.5,  -0.5],
-                           [ 0.,   0.,   0. ]]]
+        expected_X_src = [[[-1.,  -1.,   -1.],
+                           [-0.5, -0.5, -0.5],
+                           [0.,   0.,    0.]],
+                          [[-1.,   -1.,   -1.],
+                           [-0.5,  -0.5,  -0.5],
+                           [0.,   0.,   0.]],
+                          [[-1.,   -1.,   -1.],
+                           [-0.5,  -0.5,  -0.5],
+                           [0.,   0.,   0.]]]
 
         for x_slice, xe_slice in zip(X_src, expected_X_src):
             for x_row, xe_row in zip(x_slice, xe_slice):

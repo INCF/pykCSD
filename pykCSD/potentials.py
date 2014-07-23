@@ -33,7 +33,7 @@ def int_pot_1D(src, arg, curr_pos, h, R, sigma, basis_func):
     """
     Returns contribution of a single source as a function of distance
     """
-    pot = (((arg - curr_pos)**2 + h**2)**0.5 - abs(arg - curr_pos))  # h czy R
+    pot = (((arg - curr_pos)**2 + h**2)**0.5 - abs(arg - curr_pos))
     pot *= 1./(2 * sigma)
 
     # for this formula look at formula (8) from Pettersen et al., 2006

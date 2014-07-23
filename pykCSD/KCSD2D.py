@@ -70,32 +70,39 @@ class KCSD2D(object):
             raise Exception("Error! Duplicated electrode!")
 
     def set_parameters(self, params):
-        self.sigma = params.get('sigma', 1.0)
-        self.n_sources = params.get('n_sources', 300)
-        self.xmax = params.get('x_max', np.max(self.elec_pos[:, 0]))
-        self.xmin = params.get('x_min', np.min(self.elec_pos[:, 0]))
-        self.ymax = params.get('y_max', np.max(self.elec_pos[:, 1]))
-        self.ymin = params.get('y_min', np.min(self.elec_pos[:, 1]))
-        self.lambd = params.get('lambda', 0.0)
-        self.R_init = params.get('R_init', 2 * parut.min_dist(self.elec_pos))
-        self.h = params.get('h', 1.0)
-        self.ext_x = params.get('ext_x', 0.0)
-        self.ext_y = params.get('ext_y', 0.0)
+        default_params = {
+            'sigma': 1.0,
+            'n_sources': 300,
+            'xmin': np.min(self.elec_pos[:, 0]),
+            'xmax': np.max(self.elec_pos[:, 0]),
+            'ymin': np.min(self.elec_pos[:, 1]),
+            'ymax': np.max(self.elec_pos[:, 1]),
+            'dist_table_density': 100,
+            'lambd': 0.0,
+            'R_init': 2 * parut.min_dist(self.elec_pos),
+            'ext_x': 0.0,
+            'ext_y': 0.0,
+            'h': 1.0,
+            'source_type': 'gauss'
+        }
+        for (prop, default) in default_params.iteritems():
+            setattr(self, prop, params.get(prop, default))
 
         self.gdX = params.get('gdX', 0.01 * (self.xmax - self.xmin))
         self.gdY = params.get('gdY', 0.01 * (self.ymax - self.ymin))
-        self.dist_table_density = 100
 
-        self.source_type = params.get('source_type', 'gauss')
         if self.source_type not in ["gauss", "step"]:
             raise Exception("Incorrect source type!")
 
-        if self.source_type == "step":
-            self.basis = bf.step_rescale_2D
-        elif self.source_type == "gauss":
-            self.basis = bf.gauss_rescale_2D
-        elif self.source_type == "gauss_lim":
-            self.basis = bf.gauss_rescale_lim_2D
+        basis_types = {
+            "step": bf.step_rescale_2D,
+            "gauss": bf.gauss_rescale_2D,
+            "gauss_lim": bf.gauss_rescale_lim_2D,
+        }
+        if self.source_type not in basis_types.keys():
+            raise Exception("Incorrect source type!")
+        else:
+            self.basis = basis_types.get(self.source_type)
 
         self.lambdas = np.array([1.0/2**n for n in xrange(0, 20)])
 
@@ -326,14 +333,14 @@ class KCSD2D(object):
                     lambd,
                     self.sampled_pots,
                     self.k_pot,
-                    elec_pos.shape[0],
+                    self.elec_pos.shape[0],
                     n_folds
                 )
             errors[i] = np.mean(errors_iter)
         return lambdas[errors == min(errors)][0]
 
 
-if __name__ == '__main__':
+def main():
     elec_pos = np.array([[0, 0], [0, 1], [1, 1]])
     pots = np.array([0, 1, 2])
     k = KCSD2D(elec_pos, pots)
@@ -341,3 +348,7 @@ if __name__ == '__main__':
     k.estimate_pots()
     k.estimate_csd()
     k.plot_all()
+
+
+if __name__ == '__main__':
+    main()
