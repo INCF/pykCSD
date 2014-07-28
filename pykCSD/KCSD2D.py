@@ -200,21 +200,14 @@ class KCSD2D(object):
         The last record corresponds to the distance equal to the
         diagonal of the grid.
         """
-        xs = dt.probe_dist_table_points(self.R, self.dist_max,
-                                        self.dist_table_density)
-
-        dist_table = np.zeros(len(xs))
-
-        for i, x in enumerate(xs):
-            pos = (x/self.dist_table_density) * self.dist_max
-            dist_table[i] = pt.b_pot_2d_cont(pos, self.R, self.h, self.sigma,
-                                             self.basis)
-
-        self.dist_table = dt.interpolate_dist_table(
-            xs,
-            dist_table,
-            self.dist_table_density
-        )
+        self.dist_table = dt.create_dist_table(self.basis,
+                                               pt.b_pot_2d_cont,
+                                               self.R,
+                                               self.h,
+                                               self.sigma,
+                                               self.dist_max,
+                                               self.dist_table_density
+                                               )
 
     def calculate_b_pot_matrix(self):
         """

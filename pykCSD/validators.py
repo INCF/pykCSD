@@ -1,6 +1,6 @@
 import numpy as np
 
-from scipy import integrate
+# from scipy import integrate
 
 from pykCSD import KCSD
 import plotting_utils as plut
@@ -32,7 +32,7 @@ def calculate_potential_2D(csd, boundary_x, boundary_y, h):
     nx, ny = csd.shape[0], csd.shape[1]
     x = np.linspace(boundary_x[0], boundary_x[1], nx)
     y = np.linspace(boundary_y[0], boundary_y[1], ny)
-    true_pots = np.zeros((nx,ny))
+    true_pots = np.zeros((nx, ny))
     for i, y0 in enumerate(x):
         for j, x0 in enumerate(y):
             true_pots[i, j] = integrate_2D(x0, y0, x, y, csd, h)
@@ -44,24 +44,24 @@ def integrate_2D(x, y, xlin, ylin, csd, h):
     X,Y - parts of meshgrid
     """
     X, Y = np.meshgrid(xlin, ylin)
-    Nx = xlin.shape[0]
+    # Nx = xlin.shape[0]
     Ny = ylin.shape[0]
 
     # construct 2-D integrand
     #-----------------------------------
-    m = np.sqrt( (x - X)**2 + (y - Y)**2 )
-    m[m< 0.00001] = 0.00001
-    y = 2*h / np.arcsinh( m ) * csd
+    m = np.sqrt((x - X)**2 + (y - Y)**2)
+    m[m < 0.00001] = 0.00001
+    y = 2*h / np.arcsinh(m) * csd
 
     # do a 1-D integral over every row
     #-----------------------------------
-    I = np.zeros( Ny )
+    I = np.zeros(Ny)
     for i in range(Ny):
-        I[i] = np.trapz( y[i,:], ylin )
+        I[i] = np.trapz(y[i, :], ylin)
 
     # then an integral over the result
-    #-----------------------------------    
-    F = np.trapz( I, xlin )
+    #-----------------------------------
+    F = np.trapz(I, xlin)
 
     return F
 
@@ -118,8 +118,8 @@ def main2D():
 
     indx = [[5, 5], [15, 10], [25, 50], [45, 70], [51, 30], [73, 89]]
 
-    elec_pos = np.array([[X[i, j], Y[i,j]] for i, j in indx])
-    pots = np.array([[true_pots[i,j]] for i, j in indx])
+    elec_pos = np.array([[X[i, j], Y[i, j]] for i, j in indx])
+    pots = np.array([[true_pots[i, j]] for i, j in indx])
 
     print elec_pos
     true_pots = np.atleast_2d(true_pots)
@@ -137,7 +137,7 @@ def main2D():
     print rec_csd.shape
 
     plut.plot_comparison_2D(X, Y, elec_pos, true_csd, true_pots,
-                            rec_csd[:100,:100], rec_pot[:100,:100],
+                            rec_csd[:100, :100], rec_pot[:100, :100],
                             csd_err, pot_err)
 
 if __name__ == '__main__':

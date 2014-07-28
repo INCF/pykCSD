@@ -30,7 +30,8 @@ def min_dist(elec_pos):
     Returns minimal distance between any electrodes
     """
     min_distance = 0.0
-    if len(elec_pos[0]) > 1:
+    dim = len(elec_pos[0])
+    if dim > 1:
         min_distance = distance.pdist(elec_pos).min()
     else:
         flat_elec = elec_pos.flatten()

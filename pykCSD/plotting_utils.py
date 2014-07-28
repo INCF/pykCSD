@@ -10,7 +10,7 @@ Simple plotting routines for KCSD 1D, 2D, 3D.
 # TODO: ADD COLORBARS
 def plot_1D(elec_pos, meas_pots, est_pots, est_csd, extent):
     """
-    Describe what is plotted
+    
     """
     fig, (ax11, ax12, ax13) = plt.subplots(1, 3, sharex=True)
 
@@ -27,7 +27,7 @@ def plot_1D(elec_pos, meas_pots, est_pots, est_csd, extent):
 
 def plot_2D(elec_pos, meas_pots, est_pots, est_csd, extent):
     """
-    Describe what is plotted
+    
     """
     fig, (ax11, ax12, ax13) = plt.subplots(1, 3)
 
@@ -52,7 +52,7 @@ def plot_2D(elec_pos, meas_pots, est_pots, est_csd, extent):
 
 def plot_3D(elec_pos, est_pots, est_csd, extent):
     """
-    Describe what is plotted
+    
     """
     extent_x = extent[:4]
     extent_y = extent[2:6]
@@ -105,7 +105,7 @@ def plot_3D(elec_pos, est_pots, est_csd, extent):
 
 def plot_comparison_1D(X, elec_pos, true_csd, true_pots, rec_csd, rec_pots, err_csd, err_pot):
     """
-    Describe what is plotted
+    
     """
     fig = plt.figure()
 
@@ -139,7 +139,7 @@ def plot_comparison_1D(X, elec_pos, true_csd, true_pots, rec_csd, rec_pots, err_
 
 def plot_comparison_2D(X, Y, elec_pos, true_csd, true_pots, rec_csd, rec_pots, err_csd, err_pot):
     """
-    Describe what is plotted
+    
     """
     fig = plt.figure()
 
@@ -156,12 +156,13 @@ def plot_comparison_2D(X, Y, elec_pos, true_csd, true_pots, rec_csd, rec_pots, e
     ax13.set_title('CSD reconstruction error')
     """
     ax21 = fig.add_subplot(2, 3, 4)
-    plt.pcolor(X,Y,true_pots)
+    plt.pcolor(X, Y, true_pots)
     ax21.set_title('True LFP (forward scheme calculation from CSD)')
 
     ax22 = fig.add_subplot(2, 3, 5)
     plt.pcolor(X, Y, rec_pots)
-    ax22.scatter(elec_pos[:,0], elec_pos[:,1],marker='o',c='b',s=5,zorder=10)
+    ax22.scatter(elec_pos[:, 0], elec_pos[:, 1], 
+                 marker='o', c='b', s=5, zorder=10)
     #ax22.scatter(elec_pos, [0.1]*len(elec_pos))
     ax22.set_title('Reconstructed LFP')
     """

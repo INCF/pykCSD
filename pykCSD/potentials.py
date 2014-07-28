@@ -149,3 +149,24 @@ def int_pot_3D_mc(xyz, x, R, h, basis_func):
     """
     xp, yp, zp = xyz
     return int_pot_3D(xp, yp, zp, x, R, h, basis_func)
+
+
+def b_pot_3d_analytic(x, R, h, sigma, basis):
+    """
+    Calculate 3D potential using analytic scheme assuming step 
+    spherical-symmetric source.
+    This aims to reduce execution time for 3d reconstructions.
+    x : float
+        space point where we calculate potential
+    R : float
+        radius of sphere that contains sources
+    sigma : float
+        volumetric conductivity (scalar)
+    """
+    pot = 0
+    C = 0.01
+    if x > R:
+        pot = C/(4*pi*sigma*x)
+    else:
+        pot = 3*C/(8*pi*sigma*R**3) * (R**2 - x**2 / 2)
+    return pot
