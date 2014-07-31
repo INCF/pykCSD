@@ -59,7 +59,7 @@ def step_rescale_1D(x, x0, width):
     width : float
         cutoff range
     """
-    s = 1.0/width * (np.abs(x - x0) < width)
+    s = 0.5/width * (np.abs(x - x0) < width)
     return s
 
 
@@ -106,6 +106,7 @@ def step_rescale_2D(xp, yp, mu, R):
         cutoff range
     """
     s = ((xp-mu[0])**2 + (yp-mu[1])**2 <= R**2)
+    s = s / (pi*R**2)
     return s
 
 
