@@ -464,24 +464,24 @@ class TestKCSD_all_utils(unittest.TestCase):
         three_std = 1.0
         xs = np.linspace(-three_std, three_std, 30)
         probe = [bf.gauss_rescale_lim_1D(x, mu, three_std) for x in xs]
-        norm = np.trapz(probe, xs)
-        self.assertAlmostEqual(norm, 1, places=1)
+        norm_const = np.trapz(probe, xs)
+        self.assertAlmostEqual(norm_const, 1, places=1)
 
     def test_gauss1D_basis_normalized(self):
         mu = 0
         three_std = 1.0
         xs = np.linspace(-three_std, three_std, 30)
         probe = [bf.gauss_rescale_1D(x, mu, three_std) for x in xs]
-        norm = np.trapz(probe, xs)
-        self.assertAlmostEqual(norm, 1, places=1)
+        norm_const = np.trapz(probe, xs)
+        self.assertAlmostEqual(norm_const, 1, places=1)
 
     def test_step_1D_basis_normalized(self):
         mu = 0
         three_std = 1.0
         xs = np.linspace(-three_std, three_std, 30)
         probe = [bf.step_rescale_1D(x, mu, three_std) for x in xs]
-        norm = np.trapz(probe, xs)
-        self.assertAlmostEqual(norm, 1, places=1)
+        norm_const = np.trapz(probe, xs)
+        self.assertAlmostEqual(norm_const, 1, places=1)
 
     def test_gauss2D_basis_normalized(self):
         xlin = np.linspace(-1.0, 1.0, 20)
@@ -494,10 +494,9 @@ class TestKCSD_all_utils(unittest.TestCase):
         # imshow(y)
         # show()
 
-        norm = integrate_2D(y, xlin, ylin)
-        # TEST IS NOT PASSING!
-        #self.assertAlmostEqual(norm, 1, places=1)
-        pass
+        norm_const = integrate_2D(y, xlin, ylin)
+        # THIS TEST IS NOT PASSING!
+        #self.assertAlmostEqual(norm_const, 1, places=1)
 
     def test_step2D_basis_normalized(self):
         xlin = np.linspace(-1.0, 1.0, 30)
@@ -510,8 +509,8 @@ class TestKCSD_all_utils(unittest.TestCase):
         # imshow(y)
         # show()
 
-        norm = integrate_2D(y, xlin, ylin)
-        self.assertAlmostEqual(norm, 1, places=1)
+        norm_const = integrate_2D(y, xlin, ylin)
+        self.assertAlmostEqual(norm_const, 1, places=1)
 
     def test_gauss3D_basis_normalized(self):
         pass
@@ -527,7 +526,7 @@ def integrate_2D(y, xlin, ylin):
     Ny = ylin.shape[0]
     I = np.zeros(Ny)
     # do a 1-D integral over every row
-    for i in range(Ny):
+    for i in xrange(Ny):
         I[i] = np.trapz(y[i, :], ylin)
 
     # then an integral over the result
@@ -535,7 +534,7 @@ def integrate_2D(y, xlin, ylin):
     return norm
 
 
-def integrate_3D():
+def integrate_3D(y, xlin, ylin, zlin):
     pass
 
 

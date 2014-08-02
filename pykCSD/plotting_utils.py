@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from matplotlib import pylab as plt
 from mpl_toolkits.mplot3d import Axes3D
-
+import numpy as np
 """
 Simple plotting routines for KCSD 1D, 2D, 3D.
 """
@@ -139,35 +139,42 @@ def plot_comparison_1D(X, elec_pos, true_csd, true_pots, rec_csd, rec_pots, err_
 
 def plot_comparison_2D(X, Y, elec_pos, true_csd, true_pots, rec_csd, rec_pots, err_csd, err_pot):
     """
-    
+    plots true CSD, true LFP,
     """
     fig = plt.figure()
 
     ax11 = fig.add_subplot(2, 3, 1)
     plt.pcolor(X, Y, true_csd)
+    plt.colorbar()
     ax11.set_title('True CSD')
 
     ax12 = fig.add_subplot(2, 3, 2)
     plt.pcolor(X, Y, rec_csd)
+    plt.colorbar()
     ax12.set_title('Reconstructed CSD')
-    """
+
     ax13 = fig.add_subplot(2, 3, 3)
-    ax13.plot(X, err_csd)
+    ax13.pcolor(X,Y, err_csd)
+    plt.colorbar()
     ax13.set_title('CSD reconstruction error')
-    """
+
     ax21 = fig.add_subplot(2, 3, 4)
-    plt.pcolor(X, Y, true_pots)
+    plt.pcolor(X, Y, true_pots, cmap='RdYlBu')
+    plt.colorbar()
     ax21.set_title('True LFP (forward scheme calculation from CSD)')
 
     ax22 = fig.add_subplot(2, 3, 5)
-    plt.pcolor(X, Y, rec_pots)
+    plt.pcolor(X, Y, rec_pots, cmap='RdYlBu')
+    plt.colorbar()
     ax22.scatter(elec_pos[:, 0], elec_pos[:, 1], 
-                 marker='o', c='b', s=5, zorder=10)
-    #ax22.scatter(elec_pos, [0.1]*len(elec_pos))
+                 marker='o', c='b', s=3, zorder=10)
+    ax22.set_xlim([np.min(X), np.max(X)])
+    ax22.set_ylim([np.min(Y), np.max(Y)])
     ax22.set_title('Reconstructed LFP')
-    """
+
     ax23 = fig.add_subplot(2, 3, 6)
-    ax23.plot(X, err_pot)
-    ax23.set_title('LFP econstruction Error')"""
+    ax23.pcolor(X, Y, err_pot)
+    plt.colorbar()
+    ax23.set_title('LFP econstruction Error')
 
     plt.show()

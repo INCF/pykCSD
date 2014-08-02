@@ -6,6 +6,11 @@ from pykCSD import KCSD
 import plotting_utils as plut
 
 
+"""
+This module contains routines to perform a visual check of pots and CSD
+created with a forward calculation scheme.
+"""
+
 def calculate_potential_1D(csd, boundary_x, h):
     """
     csd : np.array
@@ -48,25 +53,29 @@ def integrate_2D(x, y, xlin, ylin, csd, h):
     Ny = ylin.shape[0]
 
     # construct 2-D integrand
-    #-----------------------------------
     m = np.sqrt((x - X)**2 + (y - Y)**2)
     m[m < 0.00001] = 0.00001
     y = 2*h / np.arcsinh(m) * csd
 
     # do a 1-D integral over every row
-    #-----------------------------------
     I = np.zeros(Ny)
-    for i in range(Ny):
-        I[i] = np.trapz(y[i, :], ylin)
+    for i in xrange(Ny):
+        I[i] = np.trapz(y[:, i], ylin)
 
     # then an integral over the result
-    #-----------------------------------
     F = np.trapz(I, xlin)
 
     return F
 
 
 def calculate_potential_3D(csd, boundary):
+    pass
+
+
+def integrate_3D(x, y, z, xlin, ylin, zlin, csd):
+    X, Y, Z = np.meshgrid(xlin, ylin, zlin)
+    Nz = zlin.shape[0]
+
     pass
 
 
@@ -96,9 +105,9 @@ def main1D():
     csd_err = csd_err * max(rec_csd)/max(true_csd)
     pot_err = true_pot - rec_pot
     pot_err = pot_err * max(rec_pot)/max(true_pot)
-    print true_csd.shape
-    print rec_csd.shape
-    print csd_err.shape
+    print 'true_csd.shape: ', true_csd.shape
+    print 'recstr_csd.shape: ', rec_csd.shape
+    print 'csd_err.shape: ', csd_err.shape
 
     plut.plot_comparison_1D(x, elec_pos, true_csd, true_pot,
                             rec_csd, rec_pot, csd_err, pot_err)
@@ -114,9 +123,14 @@ def main2D():
 
     boundary_x = [np.min(X), np.max(X)]
     boundary_y = [np.min(Y), np.max(Y)]
-    true_pots = calculate_potential_2D(true_csd, boundary_x, boundary_y, 1.5)
+    h = 1.5
+    true_pots = calculate_potential_2D(true_csd, boundary_x, boundary_y, h)
 
-    indx = [[5, 5], [15, 10], [25, 50], [45, 70], [51, 30], [73, 89]]
+    #indx = [[5, 5], [15, 10], [25, 50], [45, 70], [51, 30], [73, 89], [5, 80], [90, 15], [60,90]]
+    indx = []
+    for x in xrange(5,100, 10):
+        for y in xrange(5,100,10):
+            indx.append([x,y])
 
     elec_pos = np.array([[X[i, j], Y[i, j]] for i, j in indx])
     pots = np.array([[true_pots[i, j]] for i, j in indx])
@@ -131,13 +145,14 @@ def main2D():
     k.estimate_csd()
     rec_csd = k.solver.estimated_csd
     rec_pot = k.solver.estimated_pots
-    csd_err = 0.0
-    pot_err = 0.0
-    print true_csd.shape
-    print rec_csd.shape
+    csd_err = rec_csd[:100,:100].T/(np.max(rec_csd)-np.min(rec_csd)) - true_csd/(np.max(true_csd)-np.min(true_csd))
+    pot_err = rec_pot[:100,:100].T - true_pots
+    print 'true_csd.shape: ', true_csd.shape
+    print 'recstr_csd.shape: ', rec_csd.shape
+    print 'csd_err.shape: ', csd_err.shape
 
     plut.plot_comparison_2D(X, Y, elec_pos, true_csd, true_pots,
-                            rec_csd[:100, :100], rec_pot[:100, :100],
+                            rec_csd[1:-1, 1:-1].T, rec_pot[1:-1, 1:-1].T,
                             csd_err, pot_err)
 
 if __name__ == '__main__':
