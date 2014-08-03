@@ -258,26 +258,6 @@ class KCSD1D(object):
 
         self.b_interp_pot_matrix = self.b_interp_pot_matrix.reshape(ng, n_src)
 
-    def choose_lambda(self, lambdas, n_folds=1, n_iter=1):
-        """
-        Finds the optimal regularization parameter lambda
-        for Tikhonov regularization using cross validation.
-        """
-        n = len(lambdas)
-        errors = np.zeros(n)
-        errors_iter = np.zeros(n_iter)
-        for i, lambd in enumerate(lambdas):
-            for j in xrange(n_iter):
-                errors_iter[j] = cv.cross_validation(
-                    lambd,
-                    self.sampled_pots,
-                    self.k_pot,
-                    self.elec_pos.shape[0],
-                    n_folds
-                )
-            errors[i] = np.mean(errors_iter)
-        return lambdas[errors == min(errors)][0]
-
 
 def main():
     elec_pos = np.array([0.0, 0.1, 0.4, 0.7, 0.8, 1.0, 1.2, 1.7])

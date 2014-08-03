@@ -20,6 +20,8 @@ from pykCSD import potentials as pt
 from pykCSD import basis_functions as bf
 from pykCSD import source_distribution as sd
 from pykCSD import dist_table_utils as dt
+from pykCSD import cross_validation as cv
+from sklearn.cross_validation import LeaveOneOut
 
 
 class TestKCSD1D(unittest.TestCase):
@@ -41,7 +43,7 @@ class TestKCSD1D(unittest.TestCase):
         sigmas = params[5]
 
         for i, expected_result in enumerate(expected_results):
-            # the parameter names h, R were swapped
+            # the parameter names h, R were swapped comparing to Matlab version
             kcsd_result = pt.int_pot_1D(src=srcs[i],
                                         arg=args[i],
                                         curr_pos=curr_pos[i],
@@ -62,7 +64,11 @@ class TestKCSD1D(unittest.TestCase):
                  params=params)
         k.estimate_pots()
         lambdas = np.array([0.1, 0.5, 1.0])
-        k.solver.lambd = k.solver.choose_lambda(lambdas)
+        n_elec = k.solver.elec_pos.shape[0]
+        index_generator = LeaveOneOut(n_elec, indices=True)
+        k.solver.lambd = cv.choose_lambda(lambdas, k.solver.sampled_pots, 
+                                          k.solver.k_pot, k.solver.elec_pos, 
+                                          index_generator)
         self.assertEquals(k.solver.lambd, 1.0)
 
     def test_KCSD_1D_zero_pot(self):
@@ -169,7 +175,11 @@ class TestKCSD1D_full_reconstruction(unittest.TestCase):
                   'x_min': -5.0, 'x_max': 10.0, 'h': self.h}
         k = KCSD(self.elec_pos, self.meas_pot, params)
         lambdas = np.array([100.0/2**n for n in xrange(1, 20)])
-        k.solver.lambd = k.solver.choose_lambda(lambdas)
+        n_elec = k.solver.elec_pos.shape[0]
+        index_generator = LeaveOneOut(n_elec, indices=True)
+        k.solver.lambd = cv.choose_lambda(lambdas, k.solver.sampled_pots, 
+                                          k.solver.k_pot, k.solver.elec_pos, 
+                                          index_generator)
         k.solver.estimate_pots()
 
         self.assertLess(k.solver.lambd, 1.0)

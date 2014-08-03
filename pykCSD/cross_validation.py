@@ -8,6 +8,49 @@ This module contains routines for cross validation, which is used
 to find the regularization parameter in the KCSD method
 """
 
+def choose_lambda(lambdas, sampled_pots, k_pot, elec_pos, index_generator):
+    """
+    Finds the optimal regularization parameter lambda
+    for Tikhonov regularization using cross validation.
+    
+    Parameters
+    -------------
+    lambdas: list-like
+        regularization parameters set to choose from
+    index_generator: callable
+        generator of training and testing indices, for example:
+        
+        index_generator = KFold(n, n_folds=n_folds, indices=True)
+        index_generator = ShuffleSplit(5, n_iter=15, test_size=0.25, indices=True)
+        index_generator = LeavePOut(len(Y), 2)
+        index_generator = LeaveOneOut(n_elec, indices=True)
+    """
+    n = len(lambdas)
+    errors = np.zeros(n)
+    for i, lambd in enumerate(lambdas):
+        errors[i] = cross_validation(
+            lambd,
+            sampled_pots,
+            k_pot,
+            index_generator
+        )
+    return lambdas[errors == min(errors)][0]
+
+
+def cross_validation(lambd, pot, k_pot, index_generator):
+    """
+    Calculate error using LeaveOneOut or KFold cross validation.
+    """
+    errors = []
+
+    for ind_train, ind_test in index_generator:
+        err = calc_CV_error(lambd, pot, k_pot, ind_test, ind_train)
+        errors.append(err)
+
+    error = np.mean(errors)
+    # print "l=", lambd, ", err=", error
+    return error
+
 
 def calc_CV_error(lambd, pot, k_pot, ind_test, ind_train):
     k_train = k_pot[ind_train, ind_train]
@@ -24,22 +67,3 @@ def calc_CV_error(lambd, pot, k_pot, ind_test, ind_train):
 
     err = norm(pot_test - pot_est)
     return err
-
-
-def cross_validation(lambd, pot, k_pot, n_elec, n_folds):
-    """
-    Calculate error using LeaveOneOut or KFold cross validation.
-    """
-    errors = []
-
-    # ind_generator = KFold(n, n_folds=n_folds, indices=True)
-    ind_generator = LeaveOneOut(n_elec, indices=True)
-    # ind_generator = ShuffleSplit(5, n_iter=15, test_size=0.25, indices=True)
-    # ind_generator = LeavePOut(len(Y), 2)
-    for ind_train, ind_test in ind_generator:
-        err = calc_CV_error(lambd, pot, k_pot, ind_test, ind_train)
-        errors.append(err)
-
-    error = np.mean(errors)
-    # print "l=", lambd, ", err=", error
-    return error
