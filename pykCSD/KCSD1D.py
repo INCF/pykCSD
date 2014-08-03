@@ -6,7 +6,6 @@ from numpy import dot, identity
 
 from numpy.linalg import norm, inv
 
-import cross_validation as cv
 import basis_functions as bf
 import source_distribution as sd
 import potentials as pt

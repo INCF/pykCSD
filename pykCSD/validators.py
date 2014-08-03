@@ -11,6 +11,7 @@ This module contains routines to perform a visual check of pots and CSD
 created with a forward calculation scheme.
 """
 
+
 def calculate_potential_1D(csd, boundary_x, h):
     """
     csd : np.array
@@ -115,9 +116,8 @@ def compare_with_model_1D(X, true_csd, indx, params):
     print 'recstr_csd.shape: ', rec_csd.shape
     print 'csd_err.shape: ', csd_err.shape
 
-    plut.plot_comparison_1D(X, elec_pos, true_csd[0,:], true_pot[0,:],
+    plut.plot_comparison_1D(X, elec_pos, true_csd[0, :], true_pot[0, :],
                             rec_csd, rec_pot, csd_err, pot_err)
-
 
 
 def main2D():
@@ -128,10 +128,11 @@ def main2D():
     true_csd -= 0.5 * np.exp(-((X - 1)**2 + (Y - 9)**2)/(2 * np.pi * 2.0))
     true_csd += 1.5 * np.exp(-((X - 2)**2 + (Y - 2)**2)/(2 * np.pi * 2.0))
     kcsd_params = {'xmin': 0, 'xmax': 10,
-              'ymin': 0, 'ymax': 10,
-              'gdX': 0.10, 'gdY': 0.10,
-              'h': 0.5}
-    indx = [[5, 5], [15, 10], [25, 50], [45, 70], [51, 30], [73, 89], [5, 80], [90, 15], [60,90]]
+                   'ymin': 0, 'ymax': 10,
+                   'gdX': 0.10, 'gdY': 0.10,
+                   'h': 0.5}
+    indx = [[5, 5], [15, 10], [25, 50], [45, 70],
+            [51, 30], [73, 89], [5, 80], [90, 15], [60,90]]
     #indx = []
     #for x in xrange(5, 100, 15):
     #    for y in xrange(5 ,100, 15):
@@ -142,7 +143,8 @@ def main2D():
 def compare_with_model_2D(X, Y, true_csd, indx, params):
     boundary_x = [np.min(X), np.max(X)]
     boundary_y = [np.min(Y), np.max(Y)]
-    true_pots = calculate_potential_2D(true_csd, boundary_x, boundary_y, params['h'])
+    true_pots = calculate_potential_2D(true_csd, boundary_x, boundary_y, 
+                                       params['h'])
 
     elec_pos = np.array([[X[i, j], Y[i, j]] for i, j in indx])
     pots = np.array([[true_pots[i, j]] for i, j in indx])
@@ -154,13 +156,13 @@ def compare_with_model_2D(X, Y, true_csd, indx, params):
     k.estimate_csd()
     rec_csd = k.solver.estimated_csd
     rec_pot = k.solver.estimated_pots
-    csd_err = get_relative_error(true_csd[:100,:100], rec_csd[:100,:100].T)
-    pot_err = get_relative_error(true_pots[:100, :100], rec_pot[:100,:100].T)
+    csd_err = get_relative_error(true_csd[:100, :100], rec_csd[:100, :100].T)
+    pot_err = get_relative_error(true_pots[:100, :100], rec_pot[:100, :100].T)
     print 'true_csd.shape: ', true_csd.shape
     print 'recstr_csd.shape: ', rec_csd.shape
     print 'csd_err.shape: ', csd_err.shape
 
-    plut.plot_comparison_2D(X[1:-1,1:-1], Y[1:-1,1:-1], elec_pos, 
+    plut.plot_comparison_2D(X[1:-1, 1:-1], Y[1:-1, 1:-1], elec_pos,
                             true_csd[1:-1, 1:-1], true_pots[1:-1, 1:-1],
                             rec_csd[1:-1, 1:-1].T, rec_pot[1:-1, 1:-1].T,
                             csd_err[1:-1, 1:-1], pot_err[1:-1, 1:-1])
@@ -168,7 +170,7 @@ def compare_with_model_2D(X, Y, true_csd, indx, params):
 
 def get_relative_error(orig, rec):
     norm_orig = (orig-np.min(orig))/(np.max(orig)-np.min(orig))
-    norm_rec = (rec-np.min(rec))/(np.max(rec)-np.min(rec)) 
+    norm_rec = (rec-np.min(rec))/(np.max(rec)-np.min(rec))
     return np.abs(norm_rec - norm_orig) * 100
 
 

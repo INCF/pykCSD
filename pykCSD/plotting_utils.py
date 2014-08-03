@@ -9,7 +9,7 @@ Simple plotting routines for KCSD 1D, 2D, 3D.
 
 def plot_1D(elec_pos, meas_pots, est_pots, est_csd, extent):
     """
-    
+    Simple overview plot for 1D KCSD reconstruction
     """
     fig, (ax11, ax12, ax13) = plt.subplots(1, 3, sharex=True)
 
@@ -26,7 +26,7 @@ def plot_1D(elec_pos, meas_pots, est_pots, est_csd, extent):
 
 def plot_2D(elec_pos, meas_pots, est_pots, est_csd, extent):
     """
-    
+    Simple overview plot for 2D KCSD reconstruction
     """
     fig, (ax11, ax12, ax13) = plt.subplots(1, 3)
 
@@ -37,7 +37,7 @@ def plot_2D(elec_pos, meas_pots, est_pots, est_csd, extent):
     ax11.set_title('Measured potentials')
 
     im1 = ax12.imshow(est_pots.T, interpolation='none',
-                extent=extent, aspect="auto", origin='lower')
+                      extent=extent, aspect="auto", origin='lower')
     plt.colorbar(im1)
     ax12.set_title('Calculated potentials')
     ax12.autoscale_view(True, True, True)
@@ -53,7 +53,8 @@ def plot_2D(elec_pos, meas_pots, est_pots, est_csd, extent):
 
 def plot_3D(elec_pos, est_pots, est_csd, extent):
     """
-    
+    Simple overview plot for 3D KCSD recostruction, shows electrode setup and
+    selected slices of reconstructed CSD and potentials
     """
     extent_x = extent[:4]
     extent_y = extent[2:6]
@@ -106,7 +107,7 @@ def plot_3D(elec_pos, est_pots, est_csd, extent):
 
 def plot_comparison_1D(X, elec_pos, true_csd, true_pots, rec_csd, rec_pots, err_csd, err_pot):
     """
-    
+    Plot for comparing model and reconstructed LFP and CSD in 1D.
     """
     fig = plt.figure()
 
@@ -141,7 +142,7 @@ def plot_comparison_1D(X, elec_pos, true_csd, true_pots, rec_csd, rec_pots, err_
 
 def plot_comparison_2D(X, Y, elec_pos, true_csd, true_pots, rec_csd, rec_pots, err_csd, err_pot):
     """
-    plots true CSD, true LFP,
+    Plot for comparing model and reconstructed LFP and CSD in 2D.
     """
     fig = plt.figure()
 
@@ -156,7 +157,7 @@ def plot_comparison_2D(X, Y, elec_pos, true_csd, true_pots, rec_csd, rec_pots, e
     ax12.set_title('Reconstructed CSD')
 
     ax13 = fig.add_subplot(2, 3, 3)
-    pc3 = ax13.pcolor(X,Y, err_csd)
+    pc3 = ax13.pcolor(X, Y, err_csd)
     plt.colorbar(pc3)
     ax13.set_title('CSD reconstruction error [%]')
 
@@ -168,7 +169,7 @@ def plot_comparison_2D(X, Y, elec_pos, true_csd, true_pots, rec_csd, rec_pots, e
     ax22 = fig.add_subplot(2, 3, 5)
     pc5 = plt.pcolor(X, Y, rec_pots, cmap='RdYlBu')
     plt.colorbar(pc5)
-    ax22.scatter(elec_pos[:, 0], elec_pos[:, 1], 
+    ax22.scatter(elec_pos[:, 0], elec_pos[:, 1],
                  marker='o', c='b', s=3, zorder=10)
     ax22.set_xlim([np.min(X), np.max(X)])
     ax22.set_ylim([np.min(Y), np.max(Y)])

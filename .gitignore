@@ -44,5 +44,6 @@ output/*/index.html
 docs/_build
 
 # Temporary dirs and files
+datasets
 temp
 *.npy

@@ -153,7 +153,7 @@ def int_pot_3D_mc(xyz, x, R, h, basis_func):
 
 def b_pot_3d_analytic(x, R, h, sigma, basis):
     """
-    Calculate 3D potential using analytic scheme assuming step 
+    Calculate 3D potential using analytic scheme assuming step
     spherical-symmetric source.
     This aims to reduce execution time for 3d reconstructions.
     x : float

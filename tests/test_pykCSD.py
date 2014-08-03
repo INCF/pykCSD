@@ -66,8 +66,8 @@ class TestKCSD1D(unittest.TestCase):
         lambdas = np.array([0.1, 0.5, 1.0])
         n_elec = k.solver.elec_pos.shape[0]
         index_generator = LeaveOneOut(n_elec, indices=True)
-        k.solver.lambd = cv.choose_lambda(lambdas, k.solver.sampled_pots, 
-                                          k.solver.k_pot, k.solver.elec_pos, 
+        k.solver.lambd = cv.choose_lambda(lambdas, k.solver.sampled_pots,
+                                          k.solver.k_pot, k.solver.elec_pos,
                                           index_generator)
         self.assertEquals(k.solver.lambd, 1.0)
 
@@ -177,8 +177,8 @@ class TestKCSD1D_full_reconstruction(unittest.TestCase):
         lambdas = np.array([100.0/2**n for n in xrange(1, 20)])
         n_elec = k.solver.elec_pos.shape[0]
         index_generator = LeaveOneOut(n_elec, indices=True)
-        k.solver.lambd = cv.choose_lambda(lambdas, k.solver.sampled_pots, 
-                                          k.solver.k_pot, k.solver.elec_pos, 
+        k.solver.lambd = cv.choose_lambda(lambdas, k.solver.sampled_pots,
+                                          k.solver.k_pot, k.solver.elec_pos,
                                           index_generator)
         k.solver.estimate_pots()
 
@@ -453,7 +453,6 @@ class TestKCSD_all_utils(unittest.TestCase):
         X_src, Y_src, Z_src, R = sd.make_src_3D(X=X, Y=Y, Z=Z, n_src=nx*ny*nz,
                                                 ext_x=ext_x, ext_y=ext_y, ext_z=ext_z,
                                                 R_init=0.5)
-        print X_src
         expected_X_src = [[[-1.,  -1.,   -1.],
                            [-0.5, -0.5, -0.5],
                            [0.,   0.,    0.]],
@@ -516,15 +515,32 @@ class TestKCSD_all_utils(unittest.TestCase):
 
         y = bf.step_rescale_2D(X, Y, [0,0], R)
 
-        # imshow(y)
-        # show()
-
         norm_const = integrate_2D(y, xlin, ylin)
         self.assertAlmostEqual(norm_const, 1, places=1)
 
     def test_gauss3D_basis_normalized(self):
-        pass
+        xlin = np.linspace(-1.0, 1.0, 20)
+        ylin = np.linspace(-1.0, 1.0, 20)
+        zlin = np.linspace(-1.0, 1.0, 20)
+        three_stdev = 0.5
+        X, Y, Z = np.meshgrid(xlin, ylin, zlin)
 
+        y = bf.gauss_rescale_3D(X, Y, Z, [0,0,0], three_stdev)
+
+        norm_const = integrate_3D(y, xlin, ylin, zlin)
+        self.assertAlmostEqual(norm_const, 1, places=3)
+
+    def test_step3D_basis_normalized(self):
+        xlin = np.linspace(-1.0, 1.0, 20)
+        ylin = np.linspace(-1.0, 1.0, 20)
+        zlin = np.linspace(-1.0, 1.0, 20)
+        three_stdev = 0.5
+        X, Y, Z = np.meshgrid(xlin, ylin, zlin)
+
+        y = bf.step_rescale_3D(X, Y, Z, [0,0,0], three_stdev)
+
+        norm_const = integrate_3D(y, xlin, ylin, zlin)
+        self.assertAlmostEqual(norm_const, 1, places=1)
 
     def tearDown(self):
         pass
@@ -545,7 +561,18 @@ def integrate_2D(y, xlin, ylin):
 
 
 def integrate_3D(y, xlin, ylin, zlin):
-    pass
+    Nz = zlin.shape[0]
+    J = np.zeros((Nz,Nz))
+    for i in xrange(Nz):
+        J[i,:] = np.trapz(y[i, :, :], zlin)
+
+    Ny = ylin.shape[0]
+    I = np.zeros(Ny)
+    for i in xrange(Ny):
+        I[i] = np.trapz(J[i, :], ylin)
+
+    norm = np.trapz(I, xlin)
+    return norm
 
 
 def comparison_plot_2D(arr_true, arr_recstr, true_title, recstr_title):
@@ -566,6 +593,7 @@ def comparison_plot_2D(arr_true, arr_recstr, true_title, recstr_title):
     ax22.autoscale_view(True, True, True)
 
     show()
+
 
 if __name__ == '__main__':
     unittest.main()

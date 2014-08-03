@@ -1,26 +1,28 @@
 import numpy as np
 from numpy import dot, identity
 from numpy.linalg import norm, inv
-from sklearn.cross_validation import KFold, LeaveOneOut, ShuffleSplit
 
 """
 This module contains routines for cross validation, which is used
 to find the regularization parameter in the KCSD method
 """
 
+
 def choose_lambda(lambdas, sampled_pots, k_pot, elec_pos, index_generator):
     """
     Finds the optimal regularization parameter lambda
     for Tikhonov regularization using cross validation.
-    
+
     Parameters
     -------------
     lambdas: list-like
         regularization parameters set to choose from
     index_generator: callable
         generator of training and testing indices, for example:
-        
-        index_generator = KFold(n, n_folds=n_folds, indices=True)
+
+        from sklearn.cross_validation import KFold, LeaveOneOut, ShuffleSplit
+
+        index_generator = KFold(n, n_folds=10, indices=True)
         index_generator = ShuffleSplit(5, n_iter=15, test_size=0.25, indices=True)
         index_generator = LeavePOut(len(Y), 2)
         index_generator = LeaveOneOut(n_elec, indices=True)
