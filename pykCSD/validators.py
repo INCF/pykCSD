@@ -85,13 +85,19 @@ def main1D():
     true_csd = 1.0 * np.exp(-(x + 2.)**2/(2 * np.pi * 0.5))
     true_csd += 0.5 * np.exp(-(x - 7)**2/(2 * np.pi * 1.0))
 
-    true_pot = calculate_potential_1D(true_csd, [np.min(x), np.max(x)], 0.5)
-
+    elec_pos = np.array([-9.0, -6.9, -3.1, -0.3, 2.5, 5.7, 9.3])
+    params = {'xmin': -10, 'xmax': 10, 'gdX': 0.20}
     indx = [5, 15, 25, 45, 51, 73, 89]
-    elec_pos = np.array([[x[i]] for i in indx])
+
+    compare_with_model_1D(x, true_csd, indx, params)
+
+
+def compare_with_model_1D(X, true_csd, indx, params):
+    true_pot = calculate_potential_1D(true_csd, [np.min(X), np.max(X)], 0.5)
+
+    elec_pos = np.array([[X[i]] for i in indx])
     pots = np.array([[true_pot[i]] for i in indx])
 
-    params = {'x_min': -10, 'x_max': 10, 'gdX': 0.20}
     k = KCSD(elec_pos, pots, params)
     k.estimate_pots()
     k.estimate_csd()
@@ -102,59 +108,70 @@ def main1D():
     rec_pot = k.solver.estimated_pots
 
     csd_err = true_csd - rec_csd
-    csd_err = csd_err * max(rec_csd)/max(true_csd)
+    csd_err = get_relative_error(rec_csd[:,0], true_csd[0,:])
     pot_err = true_pot - rec_pot
-    pot_err = pot_err * max(rec_pot)/max(true_pot)
+    pot_err = get_relative_error(rec_pot[:,0], true_pot[0,:])
     print 'true_csd.shape: ', true_csd.shape
     print 'recstr_csd.shape: ', rec_csd.shape
     print 'csd_err.shape: ', csd_err.shape
 
-    plut.plot_comparison_1D(x, elec_pos, true_csd, true_pot,
+    plut.plot_comparison_1D(X, elec_pos, true_csd[0,:], true_pot[0,:],
                             rec_csd, rec_pot, csd_err, pot_err)
 
 
+
 def main2D():
-    xlin = np.linspace(0, 10, 100)
-    ylin = np.linspace(0, 10, 100)
+    xlin = np.linspace(0, 10, 101)
+    ylin = np.linspace(0, 10, 101)
     X, Y = np.meshgrid(xlin, ylin)
     true_csd = 1.0 * np.exp(-((X - 8.)**2 + (Y - 8)**2)/(2 * np.pi * 1.5))
     true_csd -= 0.5 * np.exp(-((X - 1)**2 + (Y - 9)**2)/(2 * np.pi * 2.0))
     true_csd += 1.5 * np.exp(-((X - 2)**2 + (Y - 2)**2)/(2 * np.pi * 2.0))
+    kcsd_params = {'xmin': 0, 'xmax': 10,
+              'ymin': 0, 'ymax': 10,
+              'gdX': 0.10, 'gdY': 0.10,
+              'h': 0.5}
+    indx = [[5, 5], [15, 10], [25, 50], [45, 70], [51, 30], [73, 89], [5, 80], [90, 15], [60,90]]
+    #indx = []
+    #for x in xrange(5, 100, 15):
+    #    for y in xrange(5 ,100, 15):
+    #        indx.append([x,y])
+    compare_with_model_2D(X, Y, true_csd, indx, kcsd_params)
 
+
+def compare_with_model_2D(X, Y, true_csd, indx, params):
     boundary_x = [np.min(X), np.max(X)]
     boundary_y = [np.min(Y), np.max(Y)]
-    h = 1.5
-    true_pots = calculate_potential_2D(true_csd, boundary_x, boundary_y, h)
-
-    #indx = [[5, 5], [15, 10], [25, 50], [45, 70], [51, 30], [73, 89], [5, 80], [90, 15], [60,90]]
-    indx = []
-    for x in xrange(5,100, 10):
-        for y in xrange(5,100,10):
-            indx.append([x,y])
+    true_pots = calculate_potential_2D(true_csd, boundary_x, boundary_y, params['h'])
 
     elec_pos = np.array([[X[i, j], Y[i, j]] for i, j in indx])
     pots = np.array([[true_pots[i, j]] for i, j in indx])
 
     print elec_pos
     true_pots = np.atleast_2d(true_pots)
-    params = {'xmin': 0, 'xmax': 10,
-              'ymin': 0, 'ymax': 10,
-              'gdX': 0.10, 'gdY': 0.10}
     k = KCSD(elec_pos, pots, params)
     k.estimate_pots()
     k.estimate_csd()
     rec_csd = k.solver.estimated_csd
     rec_pot = k.solver.estimated_pots
-    csd_err = rec_csd[:100,:100].T/(np.max(rec_csd)-np.min(rec_csd)) - true_csd/(np.max(true_csd)-np.min(true_csd))
-    pot_err = rec_pot[:100,:100].T - true_pots
+    csd_err = get_relative_error(true_csd[:100,:100], rec_csd[:100,:100].T)
+    pot_err = get_relative_error(true_pots[:100, :100], rec_pot[:100,:100].T)
     print 'true_csd.shape: ', true_csd.shape
     print 'recstr_csd.shape: ', rec_csd.shape
     print 'csd_err.shape: ', csd_err.shape
 
-    plut.plot_comparison_2D(X, Y, elec_pos, true_csd, true_pots,
+    plut.plot_comparison_2D(X[1:-1,1:-1], Y[1:-1,1:-1], elec_pos, 
+                            true_csd[1:-1, 1:-1], true_pots[1:-1, 1:-1],
                             rec_csd[1:-1, 1:-1].T, rec_pot[1:-1, 1:-1].T,
-                            csd_err, pot_err)
+                            csd_err[1:-1, 1:-1], pot_err[1:-1, 1:-1])
+
+
+def get_relative_error(orig, rec):
+    norm_orig = (orig-np.min(orig))/(np.max(orig)-np.min(orig))
+    norm_rec = (rec-np.min(rec))/(np.max(rec)-np.min(rec)) 
+    return np.abs(norm_rec - norm_orig) * 100
+
 
 if __name__ == '__main__':
-    main2D()
-    #main1D()
+    #main2D()
+    main1D()

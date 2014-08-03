@@ -7,7 +7,6 @@ Simple plotting routines for KCSD 1D, 2D, 3D.
 """
 
 
-# TODO: ADD COLORBARS
 def plot_1D(elec_pos, meas_pots, est_pots, est_csd, extent):
     """
     
@@ -37,13 +36,15 @@ def plot_2D(elec_pos, meas_pots, est_pots, est_csd, extent):
                  c=meas_pots, s=200, marker='s')
     ax11.set_title('Measured potentials')
 
-    ax12.imshow(est_pots.T, interpolation='none',
+    im1 = ax12.imshow(est_pots.T, interpolation='none',
                 extent=extent, aspect="auto", origin='lower')
+    plt.colorbar(im1)
     ax12.set_title('Calculated potentials')
     ax12.autoscale_view(True, True, True)
 
-    ax13.imshow(est_csd.T, interpolation='none',
+    im2 = ax13.imshow(est_csd.T, interpolation='none',
                 extent=extent, aspect="auto", origin='lower')
+    plt.colorbar(im2)
     ax13.set_title('Calculated CSD')
     ax13.autoscale_view(True, True, True)
 
@@ -119,7 +120,7 @@ def plot_comparison_1D(X, elec_pos, true_csd, true_pots, rec_csd, rec_pots, err_
 
     ax13 = fig.add_subplot(2, 3, 3)
     ax13.plot(X, err_csd)
-    ax13.set_title('CSD reconstruction error')
+    ax13.set_title('CSD reconstruction error [%]')
 
     ax21 = fig.add_subplot(2, 3, 4)
     ax21.plot(X, true_pots)
@@ -128,11 +129,12 @@ def plot_comparison_1D(X, elec_pos, true_csd, true_pots, rec_csd, rec_pots, err_
     ax22 = fig.add_subplot(2, 3, 5)
     ax22.plot(X, rec_pots)
     ax22.scatter(elec_pos, [0.1]*len(elec_pos))
+    ax22.set_xlim([np.min(X), np.max(X)])
     ax22.set_title('Reconstructed LFP')
 
     ax23 = fig.add_subplot(2, 3, 6)
     ax23.plot(X, err_pot)
-    ax23.set_title('LFP econstruction Error')
+    ax23.set_title('LFP econstruction Error [%]')
 
     plt.show()
 
@@ -144,28 +146,28 @@ def plot_comparison_2D(X, Y, elec_pos, true_csd, true_pots, rec_csd, rec_pots, e
     fig = plt.figure()
 
     ax11 = fig.add_subplot(2, 3, 1)
-    plt.pcolor(X, Y, true_csd)
-    plt.colorbar()
+    pc1 = plt.pcolor(X, Y, true_csd)
+    plt.colorbar(pc1)
     ax11.set_title('True CSD')
 
     ax12 = fig.add_subplot(2, 3, 2)
-    plt.pcolor(X, Y, rec_csd)
-    plt.colorbar()
+    pc2 = plt.pcolor(X, Y, rec_csd)
+    plt.colorbar(pc2)
     ax12.set_title('Reconstructed CSD')
 
     ax13 = fig.add_subplot(2, 3, 3)
-    ax13.pcolor(X,Y, err_csd)
-    plt.colorbar()
-    ax13.set_title('CSD reconstruction error')
+    pc3 = ax13.pcolor(X,Y, err_csd)
+    plt.colorbar(pc3)
+    ax13.set_title('CSD reconstruction error [%]')
 
     ax21 = fig.add_subplot(2, 3, 4)
-    plt.pcolor(X, Y, true_pots, cmap='RdYlBu')
-    plt.colorbar()
+    pc4 = plt.pcolor(X, Y, true_pots, cmap='RdYlBu')
+    plt.colorbar(pc4)
     ax21.set_title('True LFP (forward scheme calculation from CSD)')
 
     ax22 = fig.add_subplot(2, 3, 5)
-    plt.pcolor(X, Y, rec_pots, cmap='RdYlBu')
-    plt.colorbar()
+    pc5 = plt.pcolor(X, Y, rec_pots, cmap='RdYlBu')
+    plt.colorbar(pc5)
     ax22.scatter(elec_pos[:, 0], elec_pos[:, 1], 
                  marker='o', c='b', s=3, zorder=10)
     ax22.set_xlim([np.min(X), np.max(X)])
@@ -173,8 +175,8 @@ def plot_comparison_2D(X, Y, elec_pos, true_csd, true_pots, rec_csd, rec_pots, e
     ax22.set_title('Reconstructed LFP')
 
     ax23 = fig.add_subplot(2, 3, 6)
-    ax23.pcolor(X, Y, err_pot)
-    plt.colorbar()
-    ax23.set_title('LFP econstruction Error')
+    pc6 = ax23.pcolor(X, Y, err_pot, cmap='RdYlBu')
+    plt.colorbar(pc6)
+    ax23.set_title('LFP reconstruction Error [%]')
 
     plt.show()
