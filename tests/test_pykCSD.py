@@ -60,7 +60,7 @@ class TestKCSD1D(unittest.TestCase):
         params = {'x_min': 0.0, 'x_max': 1.0, 'gdX': 0.1,
                   'source_type': 'gauss_lim'}
         k = KCSD(elec_pos=np.array([[0.2], [0.7]]),
-                 sampled_pots=np.array([1.0, 0.5]),
+                 sampled_pots=np.array([[1.0, 0.5]]).T,
                  params=params)
         k.estimate_pots()
         lambdas = np.array([0.1, 0.5, 1.0])
@@ -77,7 +77,7 @@ class TestKCSD1D(unittest.TestCase):
         params = {'n_sources': 20, 'dist_density': 20,
                   'source_type': 'gauss_lim'}
         k_zero = KCSD(elec_pos=np.array([[1.0], [2.0], [3.0], [4.0], [5.0]]),
-                      sampled_pots=np.array([0.0, 0.0, 0.0, 0.0, 0.0]),
+                      sampled_pots=np.array([[0.0, 0.0, 0.0, 0.0, 0.0]]).T,
                       params=params)
         k_zero.estimate_pots()
         self.assertAlmostEqual(norm(k_zero.solver.estimated_pots), 0.0, places=10)
@@ -88,7 +88,7 @@ class TestKCSD1D(unittest.TestCase):
         params = {'n_sources': 20, 'dist_density': 20,
                   'source_type': 'gauss_lim'}
         k_zero = KCSD(elec_pos=np.array([[1.0], [2.0], [3.0], [4.0], [5.0]]),
-                      sampled_pots=np.array([0.0, 0.0, 0.0, 0.0, 0.0]),
+                      sampled_pots=np.array([[0.0], [0.0], [0.0], [0.0], [0.0]]),
                       params=params)
         k_zero.estimate_csd()
         self.assertAlmostEqual(norm(k_zero.solver.estimated_csd), 0.0, places=10)
@@ -96,22 +96,12 @@ class TestKCSD1D(unittest.TestCase):
     def test_KCSD_1D_incorrect_electrode_number(self):
         """if there are more electrodes than pots, it should raise exception"""
         with self.assertRaises(Exception):
-            k = KCSD(elec_pos=np.array([[0], [1], [2]]), sampled_pots=[0, 1])
+            k = KCSD(elec_pos=np.array([[0], [1], [2]]), sampled_pots=[[0], [1]])
 
     def test_KCSD_1D_duplicated_electrode(self):
         """if two electrodes are at the same spot, it should raise exception"""
         with self.assertRaises(Exception):
-            k = KCSD(elec_pos=np.array([[0], [0]]), sampled_pots=[0, 0])
-
-    def test_KCSD_1D_pot_time_frames(self):
-        """given array of dimension (pots, time), calculate pots for every time frame"""
-        # missing functionality
-        pass
-
-    def test_KCSD_1D_csd_time_frames(self):
-        """given array of dimension (pots, time), calculate csd for every time frame"""
-        # missing functionality
-        pass
+            k = KCSD(elec_pos=np.array([[0], [0]]), sampled_pots=[[0], [0]])
 
     def tearDown(self):
         pass
@@ -135,7 +125,9 @@ class TestKCSD1D_full_reconstruction(unittest.TestCase):
 
         self.elec_pos = np.array([[x] for x in np.linspace(self.xmin, self.xmax, 20)])
         self.true_pots = [calculate_pot(self.true_csd, self.x, x0) for x0 in self.x]
-        self.meas_pot = np.array([calculate_pot(self.true_csd, self.x, x0) for x0 in self.elec_pos])
+        self.meas_pot = np.array([[calculate_pot(self.true_csd, self.x, x0)] for x0 in self.elec_pos])
+        print self.meas_pot.shape
+        print self.elec_pos.shape
 
     def test_KCSD_1D_pot_reconstruction(self):
         """reconstructed pots should be similar to model pots"""
@@ -209,7 +201,7 @@ class TestKCSD2D(unittest.TestCase):
 
     def test_KCSD_2D_zero_pot(self):
         elec_pos = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
-        pots = np.array([0, 0, 0, 0])
+        pots = np.array([[0], [0], [0], [0]])
         k = KCSD(elec_pos, pots)
         k.solver.estimate_pots()
         for pot in k.solver.estimated_pots.flatten():
@@ -217,7 +209,7 @@ class TestKCSD2D(unittest.TestCase):
 
     def test_KCSD2D_zero_csd(self):
         elec_pos = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
-        pots = np.array([0, 0, 0, 0])
+        pots = np.array([[0], [0], [0], [0]])
         k = KCSD(elec_pos, pots)
         k.solver.estimate_csd()
         for csd in k.solver.estimated_csd.flatten():
@@ -234,6 +226,7 @@ class TestKCSD2D_full_recostruction(unittest.TestCase):
         pots_fpath = 'tests/test_datasets/KCSD2D/five_elec_pots.dat'
         elec_pos = np.loadtxt(elec_fpath, delimiter=',')
         pots = np.loadtxt(pots_fpath, delimiter=',')
+        pots = np.array([pots]).T
         params = {'n_sources': 9, 'gdX': 0.1, 'gdY': 0.1}
         self.k = KCSD2D(elec_pos, pots, params)
         self.k.init_model()
@@ -277,7 +270,7 @@ class TestKCSD2D_full_recostruction(unittest.TestCase):
         fpath = 'tests/test_datasets/KCSD2D/five_elec_estimated_pot.dat'
         expected_pots = np.loadtxt(fpath, delimiter=',')
         self.k.estimate_pots()
-        err = norm(expected_pots - self.k.estimated_pots, ord=2)
+        err = norm(expected_pots - self.k.estimated_pots[:,:,0], ord=2)
         # comparison_plot_2D(expected_pots, self.k,estimated_pots,
         #                   'matlab', 'python')
         # print np.max(expected_pots - self.k.estimated_pots)
@@ -287,10 +280,10 @@ class TestKCSD2D_full_recostruction(unittest.TestCase):
         fpath = 'tests/test_datasets/KCSD2D/five_elec_estimated_csd.dat'
         expected_csd = np.loadtxt(fpath, delimiter=',')
         self.k.estimate_csd()
-        err = norm(expected_csd - self.k.estimated_csd, ord=2)
-        # comparison_plot_2D(expected_csd, self.k.estimated_csd,
+        err = norm(expected_csd - self.k.estimated_csd[:,:,0], ord=2)
+        #comparison_plot_2D(expected_csd, self.k.estimated_csd[:,:,0],
         #                   'matlab', 'python')
-        # print np.max(expected_csd - self.k.estimated_csd)
+        print np.max(expected_csd - self.k.estimated_csd)
         self.assertAlmostEqual(err, 0.0, places=0)
 
     def test_KCSD2D_cross_validation_five_electrodes(self):
@@ -424,7 +417,6 @@ class TestKCSD_all_utils(unittest.TestCase):
         X_src, Y_src, Z_src, R = sd.make_src_3D(X=X, Y=Y, Z=Z, n_src=nx*ny*nz,
                                                 ext_x=ext_x, ext_y=ext_y, ext_z=ext_z,
                                                 R_init=0.5)
-
         expected_X_src = [[[0.,   0.,   0.],
                            [0.5,  0.5,  0.5],
                            [1.,   1.,   1.]],
@@ -434,7 +426,6 @@ class TestKCSD_all_utils(unittest.TestCase):
                           [[0.,   0.,   0.],
                            [0.5,  0.5,  0.5],
                            [1.,   1.,   1.]]]
-
         for x_slice, xe_slice in zip(X_src, expected_X_src):
             for x_row, xe_row in zip(x_slice, xe_slice):
                 for x, xe in zip(x_row, xe_row):

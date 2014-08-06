@@ -107,12 +107,12 @@ class KCSD1D(object):
 
         self.lambdas = np.array([1.0 / 2**n for n in xrange(0, 20)])
 
-        nx = np.ceil((self.xmax - self.xmin)/self.gdX)
+        self.nx = int(np.ceil((self.xmax - self.xmin)/self.gdX))
 
         # space_X is the estimation area
         self.space_X = np.linspace(self.xmin - self.ext,
                                    self.xmax + self.ext,
-                                   nx)
+                                   self.nx)
         (self.X_src, self.R) = sd.make_src_1D(self.space_X, self.ext,
                                               self.n_sources, self.R_init)
 
@@ -122,22 +122,23 @@ class KCSD1D(object):
     def estimate_pots(self):
         """Calculates Local Field Potentials."""
         estimation_table = self.interp_pot
-
-        k_inv = inv(self.k_pot + self.lambd * identity(self.k_pot.shape[0]))
-        beta = dot(k_inv, self.sampled_pots)
-        self.estimated_pots = dot(estimation_table, beta)
-
+        self.estimated_pots = self.estimate(estimation_table)
         return self.estimated_pots
 
     def estimate_csd(self):
         """Calculates Current Source Density."""
         estimation_table = self.k_interp_cross
-
-        k_inv = inv(self.k_pot + self.lambd * identity(self.k_pot.shape[0]))
-        beta = dot(k_inv, self.sampled_pots)
-        self.estimated_csd = dot(estimation_table, beta)
-
+        self.estimated_csd = self.estimate(estimation_table)
         return self.estimated_csd
+
+    def estimate(self, estimation_table):
+        k_inv = inv(self.k_pot + self.lambd * identity(self.k_pot.shape[0]))
+        nt = self.sampled_pots.shape[1]
+        estimation = np.zeros((self.nx, nt))
+        for t in xrange(nt):
+            beta = dot(k_inv, self.sampled_pots[:, t])
+            estimation[:, t] = dot(estimation_table, beta)
+        return estimation
 
     def save(self, filename='result'):
         """Save results to file."""
@@ -259,7 +260,7 @@ class KCSD1D(object):
 
 
 def main():
-    elec_pos = np.array([0.0, 0.1, 0.4, 0.7, 0.8, 1.0, 1.2, 1.7])
+    elec_pos = np.array([[0.0], [0.1], [0.4], [0.7], [0.8], [1.0], [1.2], [1.7]])
     pots = 0.8 * np.exp(-(elec_pos - 0.1)**2/0.2)
     pots += 0.8 * np.exp(-(elec_pos - 0.7)**2/0.1)
     params = {
@@ -268,10 +269,10 @@ def main():
         'source_type': 'step',
         'n_sources': 30
     }
-
-    k = KCSD1D(elec_pos, pots, params=params)
+    k = KCSD1D(elec_pos, np.array(pots), params=params)
+    print k.sampled_pots.shape
+    print k.elec_pos.shape
     k.init_model()
-    print "lambda=", k.choose_lambda(k.lambdas)
     k.estimate_pots()
     k.estimate_csd()
     k.plot_all()

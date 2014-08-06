@@ -128,34 +128,31 @@ class KCSD2D(object):
     def estimate_pots(self):
         """Calculates Local Field Potentials."""
         estimation_table = self.interp_pot
-
-        k_inv = inv(self.k_pot + self.lambd * identity(self.k_pot.shape[0]))
-        beta = dot(k_inv, self.sampled_pots)
-
-        (nx, ny) = self.space_X.shape
-        output = np.zeros(nx * ny)
-
-        for i in xrange(self.elec_pos.shape[0]):
-            output[:] += beta[i] * estimation_table[:, i]
-
-        self.estimated_pots = output.reshape(nx, ny)
+        self.estimated_pots = self.estimate(estimation_table)
         return self.estimated_pots
 
     def estimate_csd(self):
         """Calculates Current Source Density."""
         estimation_table = self.k_interp_cross
-
-        k_inv = inv(self.k_pot + self.lambd * identity(self.k_pot.shape[0]))
-        beta = dot(k_inv, self.sampled_pots)
-
-        (nx, ny) = self.space_X.shape
-        output = np.zeros(nx * ny)
-
-        for i in xrange(self.elec_pos.shape[0]):
-            output[:] += beta[i] * estimation_table[:, i]
-
-        self.estimated_csd = output.reshape(nx, ny)
+        self.estimated_csd = self.estimate(estimation_table)
         return self.estimated_csd
+
+    def estimate(self, estimation_table):
+        k_inv = inv(self.k_pot + self.lambd * identity(self.k_pot.shape[0]))
+        #beta = dot(k_inv, self.sampled_pots)
+        nt = self.sampled_pots.shape[1]
+        (nx, ny) = self.space_X.shape
+        estimation = np.zeros((nx * ny, nt))
+
+        for t in xrange(nt):
+            beta = dot(k_inv, self.sampled_pots[:, t])
+            #estimation[:, t] = dot(estimation_table, beta)
+            for i in xrange(self.elec_pos.shape[0]):
+                estimation[:, t] += beta[i] * estimation_table[:, i]
+
+        estimation = estimation.reshape(nx, ny, nt)
+        return estimation
+
 
     def save(self, filename='result'):
         """Save results to file."""

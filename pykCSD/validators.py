@@ -156,15 +156,15 @@ def compare_with_model_2D(X, Y, true_csd, indx, params):
     k.estimate_csd()
     rec_csd = k.solver.estimated_csd
     rec_pot = k.solver.estimated_pots
-    csd_err = get_relative_error(true_csd[:100, :100], rec_csd[:100, :100].T)
-    pot_err = get_relative_error(true_pots[:100, :100], rec_pot[:100, :100].T)
+    csd_err = get_relative_error(true_csd[:100, :100], rec_csd[:100, :100, 0].T)
+    pot_err = get_relative_error(true_pots[:100, :100], rec_pot[:100, :100, 0].T)
     print 'true_csd.shape: ', true_csd.shape
     print 'recstr_csd.shape: ', rec_csd.shape
     print 'csd_err.shape: ', csd_err.shape
 
     plut.plot_comparison_2D(X[1:-1, 1:-1], Y[1:-1, 1:-1], elec_pos,
                             true_csd[1:-1, 1:-1], true_pots[1:-1, 1:-1],
-                            rec_csd[1:-1, 1:-1].T, rec_pot[1:-1, 1:-1].T,
+                            rec_csd[1:-1, 1:-1, 0].T, rec_pot[1:-1, 1:-1, 0].T,
                             csd_err[1:-1, 1:-1], pot_err[1:-1, 1:-1])
 
 
@@ -175,5 +175,5 @@ def get_relative_error(orig, rec):
 
 
 if __name__ == '__main__':
-    #main2D()
-    main1D()
+    main2D()
+    #main1D()

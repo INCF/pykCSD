@@ -131,23 +131,16 @@ class KCSD3D(object):
     def estimate_pots(self):
         """Calculates Local Field Potentials."""
         estimation_table = self.interp_pot
-
-        k_inv = inv(self.k_pot + self.lambd * identity(self.k_pot.shape[0]))
-        beta = dot(k_inv, self.sampled_pots)
-
-        (nx, ny, nz) = self.space_X.shape
-        output = np.zeros(nx * ny * nz)
-
-        for i in xrange(self.elec_pos.shape[0]):
-            output[:] += beta[i]*estimation_table[:, i]
-
-        self.estimated_pots = output.reshape(nx, ny, nz)
+        self.estimated_pots = self.estimate(estimation_table)
         return self.estimated_pots
 
     def estimate_csd(self):
         """Calculates Current Source Density."""
         estimation_table = self.k_interp_cross
+        self.estimated_csd = self.estimate(estimation_table)
+        return self.estimated_csd
 
+    def estimate(self, estimation_table):
         k_inv = inv(self.k_pot + self.lambd * identity(self.k_pot.shape[0]))
         beta = dot(k_inv, self.sampled_pots)
 
@@ -157,8 +150,8 @@ class KCSD3D(object):
         for i in xrange(self.elec_pos.shape[0]):
             output[:] += beta[i] * estimation_table[:, i]
 
-        self.estimated_csd = output.reshape(nx, ny, nz)
-        return self.estimated_csd
+        estimation = output.reshape(nx, ny, nz)
+        return estimation
 
     def save(self, filename='result'):
         """Save results to file."""
