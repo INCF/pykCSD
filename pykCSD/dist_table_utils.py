@@ -12,22 +12,28 @@ def create_dist_table(basis, pot_func, R, h, sigma, dist_max, dt_len):
     The last record corresponds to the distance equal to the
     diagonal of the hyperrectangle (interval, grid or cuboid).
 
-    Parameters
-    ------------
+    **Parameters**
+
     basis : callable,
         basis function template
+    
     pot_func : callable
         function that defines the relation of csd and potential
+    
     R : float
         basis function radius
+    
     h : float
         in kCSD 1D - radius of the cylinder
         in kCSD 2D - thickness of volume slice
         in kCSD 3D - not used
+    
     sigma : float
         space conductivity - scalar
+    
     dist_max : float
         diagonal of the hyperrectangle containing estimation space
+    
     dt_len : float
         number of points in distance table
     """
@@ -49,17 +55,19 @@ def probe_dist_table_points(R, dist_max, dt_len):
     the distance function of potential. The points should be probed
     denser in the place, where the function changes more rapidly.
 
-    Parameters
-    -----------
+    **Parameters**
+    
     R : float
         basis function radius
+    
     dist_max : float
         distance between two most distant points in estimation space
+    
     dt_len : int
         total number of samples in distance table
 
-    Returns
-    -----------
+    **Returns**
+    
     xs : np.array
         sparsely probed indices from the distance table
     """
@@ -98,17 +106,19 @@ def interpolate_dist_table(xs, probed_dist_table, dt_len):
 
 def generated_potential(dist, dist_max, dist_table):
     """
-    Parameters
-    -----------
+    **Parameters**
+    
     dist : float
         distance at which we want to obtain the potential value
+    
     dist_max : float
         distance between two most distant points in estimation space
+    
     dist_table : np.array
         potential as a probed function of distance
 
-    Returns
-    -----------
+    **Returns**
+
     pot : float
         value of potential at specified distance from the source
     """

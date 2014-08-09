@@ -1,10 +1,8 @@
 import numpy as np
 
-# from scipy import integrate
-
 from pykCSD import KCSD
 import plotting_utils as plut
-
+import potentials as pt
 
 """
 This module contains routines to perform a visual check of pots and CSD
@@ -70,7 +68,7 @@ def integrate_2D(x, y, xlin, ylin, csd, h):
 
 
 def calculate_potential_3D(csd, boundary):
-    pass
+    return b_pot_3d_analytic(x, R, h, sigma, None)
 
 
 def integrate_3D(x, y, z, xlin, ylin, zlin, csd):

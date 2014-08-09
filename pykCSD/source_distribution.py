@@ -11,23 +11,28 @@ in 1D, 2D, 3D space.
 
 def make_src_1D(X, ext_x, n_src, R_init):
     """
-    Parameters
-    -----------
+    **Parameters**
+
     X : np.array
         points at which CSD will be estimated
+    
     ext_x : float
         how should the sources extend the area X, Y
+    
     n_src : int
         demanded number of sources to be included in the model
+    
     R_init : float
         demanded radius of the basis element
 
-    Returns
-    -----------
+    **Returns**
+    
     X_src : np.arrays
         positions of the sources
+    
     nx : ints
         number of sources over the line
+    
     R : float
         effective radius of the basis element
     """
@@ -51,19 +56,22 @@ def get_src_params_1D(Lx, n_src):
     """
     Helps to distribute n_src sources evenly over a line of length Lx
 
-    Parameters
-    -----------
+    **Parameters**
+
     Lx : float
         length of the line over which the sources should be placed
+    
     n_src : int
         demanded number of sources to be included in the model
 
-    Returns
-    -----------
+    **Returns**
+
     nx : int
         number of sources in direction x
+    
     Lx_n : float
         updated length
+    
     ds : float
         spacing between the sources
     """
@@ -82,24 +90,29 @@ def get_src_params_1D(Lx, n_src):
 # TODO: replace with the hypervolume approach?
 def make_src_2D(X, Y, n_src, ext_x, ext_y, R_init):
     """
-    Parameters
-    -----------
+    **Parameters**
+    
     X, Y : np.arrays
         points at which CSD will be estimated
+    
     n_src : int
         demanded number of sources to be included in the model
+    
     ext_x, ext_y : floats
         how should the sources extend the area X, Y
+    
     R_init : float
         demanded radius of the basis element
 
-    Returns
-    -----------
+    **Returns**
+
     X_src, Y_src : np.arrays
         positions of the sources
+    
     nx, ny : ints
         number of sources in directions x,y
         new n_src = nx * ny may not be equal to the demanded number of sources
+    
     R : float
         effective radius of the basis element
     """
@@ -145,21 +158,24 @@ def get_src_params_2D(Lx, Ly, n_src):
     """
     Helps to distribute n_src sources evenly in a rectangle of size Lx * Ly
 
-    Parameters
-    -----------
+    **Parameters**
+
     Lx, Ly : floats
         lengths in the directions x, y of the area,
         the sources should be placed
+    
     n_src : int
         demanded number of sources
 
-    Returns
-    -----------
+    **Returns**
+    
     nx, ny : ints
         number of sources in directions x, y
         new n_src = nx * ny may not be equal to the demanded number of sources
+    
     Lx_n, Ly_n : floats
         updated lengths in the directions x, y
+    
     ds : float
         spacing between the sources
     """
@@ -183,25 +199,30 @@ def get_src_params_2D(Lx, Ly, n_src):
 
 def make_src_3D(X, Y, Z, n_src, ext_x, ext_y, ext_z, R_init):
     """
-    Parameters
-    -----------
+    **Parameters**
+
     X, Y, Z : np.arrays
         points at which CSD will be estimated
+
     n_src : int
         desired number of sources we want to include in the model
+
     ext_x, ext_y, ext_z : floats
         how should the sources extend over the area X,Y,Z
+
     R_init : float
         demanded radius of the basis element
 
-    Returns
-    -----------
+    **Returns**
+
     X_src, Y_src, Z_src : np.arrays
         positions of the sources in 3D space
+
     nx, ny, nz : ints
         number of sources in directions x,y,z
         new n_src = nx * ny * nz may not be equal to the demanded number of
         sources
+        
     R : float
         updated radius of the basis element
     """
@@ -236,22 +257,25 @@ def get_src_params_3D(Lx, Ly, Lz, n_src):
     """
     Helps to evenly distribute n_src sources in a cuboid of size Lx * Ly * Lz
 
-    Parameters
-    -----------
+    **Parameters**
+
     Lx, Ly, Lz : floats
         lengths in the directions x, y, z of the area,
         the sources should be placed
+
     n_src : int
         demanded number of sources to be included in the model
 
-    Returns
-    -----------
+    **Returns**
+
     nx, ny, nz : ints
         number of sources in directions x, y, z
         new n_src = nx * ny * nz may not be equal to the demanded number of
         sources
+
     Lx_n, Ly_n, Lz_n : floats
         updated lengths in the directions x, y, z
+
     ds : float
         spacing between the sources (grid nodes)
     """

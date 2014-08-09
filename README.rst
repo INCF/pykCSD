@@ -22,8 +22,12 @@ It can estimate current source density from potentials measured with irregularly
 Features
 --------
 
-* Estimation of potentials and CSD in 1D, 2D, 3D case
-* TODO: 
-	* management of time-dependent datasets
-	* management of big datasets
-	* GUI
+* Estimation of potentials and CSD in 1D, 2D, 3D case for both static and dynamic recordings
+* Visualization of the estimated quantities
+
+
+TODO
+-------
+* tracking the units
+* management of big datasets
+* GUI

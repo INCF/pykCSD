@@ -17,41 +17,50 @@ class KCSD3D(object):
     """
     3D variant of the kCSD method.
     It assumes sources are distributed in 3D space.
+
+    **Parameters**
+    
+    elec_pos : numpy array
+        positions of electrodes
+
+    sampled_pots : numpy array
+        potentials measured by electrodes
+    
+    params : set, optional
+        configuration parameters, that may contain the following keys:
+
+        'sigma' : float
+            space conductance of the medium
+    
+        'n_sources' : int
+            number of sources
+    
+        'source_type' : str
+            basis function type ('gauss', 'step', 'gauss_lim')
+    
+        'R_init' : float
+            demanded thickness of the basis element
+    
+        'h' : float
+            cylinder radius
+    
+        'dist_density' : int
+            resolution of the dist_table
+    
+        'x_min', 'x_max', 'y_min', 'y_max' : floats
+            boundaries for CSD estimation space
+    
+        'ext' : float
+            length of space extension: x_min-ext ... x_max+ext
+    
+        'gdX', 'gdY' : float
+            space increments in the estimation space
+    
+        'lambd' : float
+            regularization parameter for ridge regression
     """
 
     def __init__(self, elec_pos, sampled_pots, params={}):
-        """
-        Parameters
-        ----------
-            elec_pos : numpy array
-                positions of electrodes
-            sampled_pots : numpy array
-                potentials measured by electrodes
-            params : set, optional
-                configuration parameters, that may contain the following keys:
-                'sigma' : float
-                    space conductance of the medium
-                'n_sources' : int
-                    number of sources
-                'source_type' : str
-                    basis function type ('gauss', 'step', 'gauss_lim')
-                'R_init' : float
-                    demanded thickness of the basis element
-                'h' : float
-                    cylinder radius
-                'dist_density' : int
-                    resolution of the dist_table
-                'x_min', 'x_max', 'y_min', 'y_max' : floats
-                    boundaries for CSD estimation space
-                'ext' : float
-                    length of space extension: x_min-ext ... x_max+ext
-                'gdX', 'gdY' : float
-                    space increments in the estimation space
-                'cv_generator' : str
-                    type of index generator for cross_validation
-                'lambd' : float
-                    regularization parameter for ridge regression
-        """
         self.validate_parameters(elec_pos, sampled_pots)
         self.elec_pos = elec_pos
         self.sampled_pots = sampled_pots
@@ -142,15 +151,16 @@ class KCSD3D(object):
 
     def estimate(self, estimation_table):
         k_inv = inv(self.k_pot + self.lambd * identity(self.k_pot.shape[0]))
-        beta = dot(k_inv, self.sampled_pots)
-
+        nt = self.sampled_pots.shape[1]
         (nx, ny, nz) = self.space_X.shape
-        output = np.zeros(nx * ny * nz)
+        estimation = np.zeros((nx * ny * nz, nt))
 
-        for i in xrange(self.elec_pos.shape[0]):
-            output[:] += beta[i] * estimation_table[:, i]
+        for t in xrange(nt):
+            beta = dot(k_inv, self.sampled_pots[:, t])
+            for i in xrange(self.elec_pos.shape[0]):
+                estimation[:, t] += beta[i] * estimation_table[:, i]
 
-        estimation = output.reshape(nx, ny, nz)
+        estimation = estimation.reshape(nx, ny, nz, nt)
         return estimation
 
     def save(self, filename='result'):

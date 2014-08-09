@@ -92,6 +92,14 @@ pykCSD.source_distribution module
     :undoc-members:
     :show-inheritance:
 
+pykCSD.validators module
+------------------------
+
+.. automodule:: pykCSD.validators
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 
 Module contents
 ---------------

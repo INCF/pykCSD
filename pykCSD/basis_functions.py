@@ -13,12 +13,14 @@ def gauss_rescale_1D(x, mu, three_stdev):
     """
     Returns normalized gaussian scale function value
 
-    Parameters
-    -----------
+    **Parameters**
+
     x : float or np.array
         coordinates of a point/points at which we calculate the density
+    
     mu : list-like
         distribution mean vector
+    
     three_stdev : float
         3 * standard deviation of the distribution
     """
@@ -32,12 +34,14 @@ def gauss_rescale_lim_1D(x, mu, three_stdev):
     """
     Returns gaussian scale function value cut off after 3 standard deviations.
 
-    Parameters
-    -----------
+    **Parameters**
+
     x : float or np.array
         point or set of points where function should be calculated
+    
     mu : list-like
         center of the distribution,
+    
     three_stdev : float
         cut off distance from the center
     """
@@ -50,12 +54,14 @@ def step_rescale_1D(x, x0, width):
     """
     Returns normalized step function.
 
-    Parameters
-    -----------
+    **Parameters**
+
     x : float or np.array
         point or set of points where function should be calculated
+    
     x0 : float
         origin of the function
+    
     width : float
         cutoff range
     """
@@ -67,12 +73,14 @@ def gauss_rescale_2D(x, y, mu, three_stdev):
     """
     Returns normalized gaussian 2D scale function
 
-    Parameters
-    -----------
+    **Parameters**
+
     x, y : floats or np.arrays
         coordinates of a point/points at which we calculate the density
+    
     mu : list
         distribution mean vector
+
     three_stdev : float
         3 * standard deviation of the distribution
     """
@@ -96,12 +104,14 @@ def step_rescale_2D(xp, yp, mu, R):
     """
     Returns normalized 2D step function.
 
-    Parameters
-    -----------
+    **Parameters**
+
     xp, yp : floats or np.arrays
         point or set of points where function should be calculated
+    
     mu : float
         origin of the function
+    
     R : float
         cutoff range
     """
@@ -114,12 +124,14 @@ def gauss_rescale_3D(x, y, z, mu, three_stdev):
     """
     Returns normalized gaussian 3D scale function
 
-    Parameters
-    -----------
+    **Parameters**
+
     x, y, z : floats or np.arrays
         coordinates of a point/points at which we calculate the density
+    
     mu : list
         distribution mean vector
+    
     three_stdev : float
         3 * standard deviation of the distribution
     """
@@ -143,12 +155,14 @@ def step_rescale_3D(xp, yp, zp, mu, R):
     """
     Returns normalized 3D step function.
 
-    Parameters
-    -----------
+    **Parameters**
+
     xp, yp : floats or np.arrays
         point or set of points where function should be calculated
+    
     mu : float
         origin of the function
+    
     R : float
         cutoff range
     """

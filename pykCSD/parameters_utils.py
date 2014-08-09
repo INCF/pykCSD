@@ -12,12 +12,12 @@ This module contains routines for managing and validating kCSD parameters.
 
 def check_for_duplicated_electrodes(elec_pos):
     """
-    Parameters
-    ------------
+    **Parameters**
+
     elec_pos : np.array
 
-    Returns
-    ------------
+    **Returns**
+
     has_duplicated_elec : Boolean
     """
     unique_elec_pos = np.vstack({tuple(row) for row in elec_pos})

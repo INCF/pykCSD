@@ -3,7 +3,6 @@ from __future__ import division
 
 import numpy as np
 from numpy import dot, identity
-
 from numpy.linalg import norm, inv
 
 import basis_functions as bf
@@ -21,49 +20,48 @@ class KCSD1D(object):
     It assumes constant distribution of sources in a cylinder
     around the electrodes.
 
-    Attributes
-    ----------
-    elec_pos : np.array
-        1D array with positions of electrodes
-    sampled_pots : np.array
-        1D array with measured potentials
-    params : dict, optional
-        customization parameters
+    **Parameters**
+    
+    elec_pos : numpy array
+        positions of electrodes
+
+    sampled_pots : numpy array
+        potentials measured by electrodes
+    
+    params : set, optional
+        configuration parameters, that may contain the following keys:
+        'sigma' : float
+            space conductance of the medium
+        
+        'n_sources' : int
+            number of sources
+        
+        'source_type' : str
+            basis function type ('gauss', 'step', 'gauss_lim')
+        
+        'R_init' : float
+            demanded thickness of the basis element
+        
+        'h' : float
+            cylinder radius
+        
+        'dist_density' : int
+            resolution of the dist_table
+        
+        'xmin', 'xmax' : floats
+            boundaries for CSD estimation space
+        
+        'ext' : float
+            length of space extension: xmin-ext ... xmax+ext
+        
+        'gdX' : float
+            space increment (granularity) in the estimation space
+        
+        'lambd' : float
+            regularization parameter for ridge regression
     """
 
     def __init__(self, elec_pos, sampled_pots, params={}):
-        """
-        Parameters
-        ----------
-            elec_pos : numpy array
-                positions of electrodes
-            sampled_pots : numpy array
-                potentials measured by electrodes
-            params : set, optional
-                configuration parameters, that may contain the following keys:
-                'sigma' : float
-                    space conductance of the medium
-                'n_sources' : int
-                    number of sources
-                'source_type' : str
-                    basis function type ('gauss', 'step', 'gauss_lim')
-                'R_init' : float
-                    demanded thickness of the basis element
-                'h' : float
-                    cylinder radius
-                'dist_density' : int
-                    resolution of the dist_table
-                'xmin', 'xmax' : floats
-                    boundaries for CSD estimation space
-                'ext' : float
-                    length of space extension: xmin-ext ... xmax+ext
-                'gdX' : float
-                    space increment (granularity) in the estimation space
-                'cv_generator' : str
-                    type of index generator for cross_validation
-                'lambd' : float
-                    regularization parameter for ridge regression
-        """
         self.validate_parameters(elec_pos, sampled_pots)
         self.elec_pos = elec_pos
         self.sampled_pots = sampled_pots

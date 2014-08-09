@@ -302,7 +302,7 @@ class TestKCSD3D_full_recostruction(unittest.TestCase):
         """if the input pots are zero, estimated pots and csd should be zero"""
         elec_pos = np.array([(0, 0, 0), (0, 0, 1), (0, 1, 0), (1, 0, 0),
                             (0, 1, 1), (1, 1, 0), (1, 0, 1), (1, 1, 1)])
-        pots = np.array([0, 0, 0, 0, 0, 0, 0, 0])
+        pots = np.array([[0], [0], [0], [0], [0], [0], [0], [0]])
         params = {
             'gdX': 0.2,
             'gdY': 0.2,
