@@ -100,12 +100,47 @@ You can also recostruct CSD and LFP using measurements taken by spatial electrod
 	from pykCSD.pykCSD import KCSD
 	import numpy as np
 
-//image//
+	elec_pos = np.array([(0, 0, 0), (0, 0, 1), (0, 1, 0), (1, 0, 0),
+				(0, 1, 1), (1, 1, 0), (1, 0, 1), (1, 1, 1),
+				(0.5, 0.5, 0.5)])
+	pots = np.array([[-0.5], [0], [-0.5], [0], [0], [0.2], [0], [0], [1]])
+	params = {
+		'gdX': 0.05,
+		'gdY': 0.05,
+		'gdZ': 0.05,
+		'n_sources': 64,
+	}
+	k = KCSD(elec_pos, pots, params)
+
+	k.estimate_pots()
+	k.estimate_csd()
+
+	k.plot_all()
 
 
+.. figure::  _static/kcsd3d_2doc.png
+   :align:   center
+
+   The sample reconstruction in 3D
 
 
+Such a dataset can be also visualized using mayavi::
 
+	from mayavi import mlab
 
+	csd = k.solver.estimated_csd[:,:,:,0]
+	mlab.pipeline.image_plane_widget(mlab.pipeline.scalar_field(csd),
+				plane_orientation='x_axes',
+				slice_index=10,
+				)
+	mlab.pipeline.image_plane_widget(mlab.pipeline.scalar_field(csd),
+				plane_orientation='y_axes',
+				slice_index=10,
+				)
+	mlab.outline()
 
+.. figure::  _static/kcsd3d_mayavi2.png
+   :align:   center
+
+   The same reconstruction visualized with mayavi
 
