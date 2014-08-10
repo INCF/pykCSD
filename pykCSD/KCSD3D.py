@@ -113,8 +113,6 @@ class KCSD3D(object):
         else:
             self.basis = basis_types.get(self.source_type)
 
-        self.lambdas = np.array([1.0/2**n for n in xrange(0, 20)])
-
         nx = (self.xmax - self.xmin)/self.gdX + 1
         ny = (self.ymax - self.ymin)/self.gdY + 1
         nz = (self.zmax - self.zmin)/self.gdZ + 1

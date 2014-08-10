@@ -103,8 +103,6 @@ class KCSD1D(object):
         else:
             self.basis = basis_types.get(self.source_type)
 
-        self.lambdas = np.array([1.0 / 2**n for n in xrange(0, 20)])
-
         self.nx = int(np.ceil((self.xmax - self.xmin)/self.gdX))
 
         # space_X is the estimation area

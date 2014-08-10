@@ -14,13 +14,13 @@ def plot_1D(elec_pos, meas_pots, est_pots, est_csd, extent, timeframe=0):
     """
     fig, (ax11, ax12, ax13) = plt.subplots(1, 3, sharex=True)
 
-    ax11.scatter(elec_pos, meas_pots[timeframe])
+    ax11.scatter(elec_pos, meas_pots[:, timeframe])
     ax11.set_title('Measured potentials')
 
-    ax12.plot(extent, est_pots[timeframe])
+    ax12.plot(extent, est_pots[:, timeframe])
     ax12.set_title('Calculated potentials')
 
-    ax13.plot(extent, est_csd[timeframe])
+    ax13.plot(extent, est_csd[:, timeframe])
     ax13.set_title('Calculated CSD')
     plt.show()
 
@@ -29,20 +29,23 @@ def plot_2D(elec_pos, meas_pots, est_pots, est_csd, extent, timeframe=0):
     """
     Simple overview plot for 2D KCSD reconstruction
     """
-    fig, (ax11, ax12, ax13) = plt.subplots(1, 3)
+    fig = plt.figure()
 
+    ax11 = fig.add_subplot(1, 3, 1)
     ax11.set_xlim([extent[0], extent[1]])
     ax11.set_ylim([extent[2], extent[3]])
     ax11.scatter(x=elec_pos[:, 0], y=elec_pos[:, 1],
                  c=meas_pots, s=200, marker='s')
     ax11.set_title('Measured potentials')
 
+    ax12 = fig.add_subplot(1, 3, 2)
     im1 = ax12.imshow(est_pots[:, :, timeframe].T, interpolation='none',
                       extent=extent, aspect="auto", origin='lower')
     plt.colorbar(im1)
     ax12.set_title('Calculated potentials')
     ax12.autoscale_view(True, True, True)
 
+    ax13 = fig.add_subplot(1, 3, 3)
     im2 = ax13.imshow(est_csd[:, :, timeframe].T, interpolation='none',
                 extent=extent, aspect="auto", origin='lower')
     plt.colorbar(im2)

@@ -61,7 +61,12 @@ def calc_CV_error(lambd, pot, k_pot, ind_test, ind_train):
     pot_train = pot[ind_train]
     pot_test = pot[ind_test]
 
-    beta = dot(inv(k_train + lambd * identity(k_train.shape[0])), pot_train)
+    try:
+        beta = dot(inv(k_train + lambd * identity(k_train.shape[0])), pot_train)
+    except Exception:
+        #if the matrix is not invertible, then return a high error
+        err = 100000
+        return err
 
     # k_cross = k_pot[np.array([ind_test, ind_train])]
     k_cross = k_pot[ind_test][:, ind_train]

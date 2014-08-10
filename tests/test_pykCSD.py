@@ -172,8 +172,6 @@ class TestKCSD1D_full_reconstruction(unittest.TestCase):
         k.solver.lambd = cv.choose_lambda(lambdas, k.solver.sampled_pots,
                                           k.solver.k_pot, k.solver.elec_pos,
                                           index_generator)
-        k.solver.estimate_pots()
-
         self.assertLess(k.solver.lambd, 1.0)
 
 
@@ -287,7 +285,15 @@ class TestKCSD2D_full_recostruction(unittest.TestCase):
         self.assertAlmostEqual(err, 0.0, places=0)
 
     def test_KCSD2D_cross_validation_five_electrodes(self):
-        pass
+        lambdas = np.array([100.0/2**n for n in xrange(1, 20)])
+        n_elec = self.k.elec_pos.shape[0]
+        index_generator = LeaveOneOut(n_elec, indices=True)
+        self.k.lambd = cv.choose_lambda(lambdas,
+            self.k.sampled_pots,
+            self.k.k_pot, self.k.elec_pos,
+            index_generator)
+
+        self.assertGreater(self.k.lambd, 25.0)
 
     def tearDown(self):
         pass
