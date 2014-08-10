@@ -37,8 +37,8 @@ def calculate_potential_2D(csd, boundary_x, boundary_y, h):
     x = np.linspace(boundary_x[0], boundary_x[1], nx)
     y = np.linspace(boundary_y[0], boundary_y[1], ny)
     true_pots = np.zeros((nx, ny))
-    for i, y0 in enumerate(x):
-        for j, x0 in enumerate(y):
+    for i, y0 in enumerate(y):
+        for j, x0 in enumerate(x):
             true_pots[i, j] = integrate_2D(x0, y0, x, y, csd, h)
     return true_pots
 
@@ -67,15 +67,52 @@ def integrate_2D(x, y, xlin, ylin, csd, h):
     return F
 
 
-def calculate_potential_3D(csd, boundary):
-    return b_pot_3d_analytic(x, R, h, sigma, None)
+def calculate_potential_3D(csd, boundary_x, boundary_y, boundary_z):
+    nx, ny, nz = csd.shape[0], csd.shape[1], csd.shape[2]
+    x = np.linspace(boundary_x[0], boundary_x[1], nx)
+    y = np.linspace(boundary_y[0], boundary_y[1], ny)
+    z = np.linspace(boundary_z[0], boundary_z[1], nz)
+    true_pots = np.zeros((nx, ny, nz))
+    for i, z0 in enumerate(z):
+        for j, y0 in enumerate(y):
+            for k, x0 in enumerate(x):
+                true_pots[k, j, i] = integrate_3D(x0, y0, z0, x, y, z, csd)
+    return true_pots
 
 
 def integrate_3D(x, y, z, xlin, ylin, zlin, csd):
+    # TODO: NOT YET WORKING AS EXPECTED
     X, Y, Z = np.meshgrid(xlin, ylin, zlin)
     Nz = zlin.shape[0]
+    Ny = ylin.shape[0]
 
-    pass
+    m = np.sqrt((x - xlin)**2 + (y - ylin)**2 + (z - zlin)**2)
+    m[m < 0.00001] = 0.00001
+    csd = csd / m
+    #print 'CSD:'
+    #print csd
+
+    J = np.zeros((Ny, Nz))
+    for i in xrange(Nz):
+        J[:, i] = np.trapz(csd[:, :, i], zlin)
+
+    #print '1st integration'
+    #print J
+
+    Ny = ylin.shape[0]
+    I = np.zeros(Ny)
+    for i in xrange(Ny):
+        I[i] = np.trapz(J[:, i], ylin)
+
+    #print '2nd integration'
+    #print I
+
+    norm = np.trapz(I, xlin)
+    
+    #print '3rd integration'
+    #print norm
+    
+    return norm
 
 
 def main1D():
@@ -166,6 +203,27 @@ def compare_with_model_2D(X, Y, true_csd, indx, params):
                             csd_err[1:-1, 1:-1], pot_err[1:-1, 1:-1])
 
 
+def main3D():
+    # TODO: NOT YET READY
+    xlin = np.linspace(0, 10, 20)
+    ylin = np.linspace(0, 10, 20)
+    zlin = np.linspace(0, 10, 20)
+    X, Y, Z = np.meshgrid(xlin, ylin, zlin)
+    true_csd = 1.0 * np.exp(-((X - 8.)**2 + (Y - 8)**2 + (Z - 8)**2)/(2 * np.pi * 1.5))
+    true_csd -= 0.5 * np.exp(-((X - 1)**2 + (Y - 9)**2 + (Z - 9)**2)/(2 * np.pi * 2.0))
+    true_csd += 1.5 * np.exp(-((X - 2)**2 + (Y - 2)**2 + (Z - 2)**2)/(2 * np.pi * 2.0))
+    true_pots = compare_with_model_3D(X, Y, Z, true_csd, None, None)
+    return true_pots, true_csd
+
+def compare_with_model_3D(X, Y, Z, true_csd, indx, params):
+    # TODO: NOT YET READY
+    boundary_x = [np.min(X), np.max(X)]
+    boundary_y = [np.min(Y), np.max(Y)]
+    boundary_z = [np.min(Z), np.max(Z)]
+    true_pots = calculate_potential_3D(true_csd, boundary_x, boundary_y, boundary_z)
+    return true_pots
+
+
 def get_relative_error(orig, rec):
     norm_orig = (orig-np.min(orig))/(np.max(orig)-np.min(orig))
     norm_rec = (rec-np.min(rec))/(np.max(rec)-np.min(rec))
@@ -173,5 +231,6 @@ def get_relative_error(orig, rec):
 
 
 if __name__ == '__main__':
+    #main3D()
     main2D()
     #main1D()

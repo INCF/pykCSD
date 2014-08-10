@@ -129,6 +129,8 @@ Such a dataset can be also visualized using mayavi::
 	from mayavi import mlab
 
 	csd = k.solver.estimated_csd[:,:,:,0]
+	#setting up a proper gui backend
+	%gui wx
 	mlab.pipeline.image_plane_widget(mlab.pipeline.scalar_field(csd),
 				plane_orientation='x_axes',
 				slice_index=10,
@@ -138,6 +140,7 @@ Such a dataset can be also visualized using mayavi::
 				slice_index=10,
 				)
 	mlab.outline()
+
 
 .. figure::  _static/kcsd3d_mayavi2.png
    :align:   center

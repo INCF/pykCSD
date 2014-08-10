@@ -20,10 +20,12 @@ def b_pot_1d_cont(src, arg, R, h, sigma, basis_func):
     Returns potential as a function of distance from the source.
     """
     resolution = 51
-    x = np.linspace(src - 4*R, src + 4*R, resolution)
+    x = np.array(np.linspace(src - 4*R, src + 4*R, resolution))
     potx = np.array([int_pot_1D(src, arg, current_pos, h, R, sigma, basis_func)
-                    for current_pos in x])
+                    for current_pos in x]).flatten()
 
+    print 'x', x.shape
+    print 'potx', potx.shape
     pot = np.trapz(potx, x)
 
     return pot

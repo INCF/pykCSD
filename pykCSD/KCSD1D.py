@@ -82,12 +82,12 @@ class KCSD1D(object):
             'n_sources': 300,
             'xmin': np.min(self.elec_pos),
             'xmax': np.max(self.elec_pos),
-            'dist_density': 100,
+            'dist_density': 200,
             'lambd': 0.0,
             'R_init': 2 * parut.min_dist(self.elec_pos),
             'ext': 0.0,
             'h': 1.0,
-            'source_type': 'gauss'
+            'source_type': 'gauss_lim'
         }
         for (prop, default) in default_params.iteritems():
             setattr(self, prop, params.get(prop, default))
@@ -111,7 +111,6 @@ class KCSD1D(object):
                                    self.nx)
         (self.X_src, self.R) = sd.make_src_1D(self.space_X, self.ext,
                                               self.n_sources, self.R_init)
-
         Lx = np.max(self.X_src) - np.min(self.X_src) + self.R
         self.dist_max = Lx
 
@@ -133,7 +132,8 @@ class KCSD1D(object):
         estimation = np.zeros((self.nx, nt))
         for t in xrange(nt):
             beta = dot(k_inv, self.sampled_pots[:, t])
-            estimation[:, t] = dot(estimation_table, beta)
+            for i in xrange(self.elec_pos.shape[0]):
+                estimation[:, t] += beta[i] * estimation_table[:, i]
         return estimation
 
     def save(self, filename='result'):
