@@ -2,6 +2,11 @@
 Credits
 =======
 
+Scientific Lead
+----------------
+
+* Daniel Wójcik
+
 Development Lead
 ----------------
 

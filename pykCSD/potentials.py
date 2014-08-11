@@ -24,8 +24,6 @@ def b_pot_1d_cont(src, arg, R, h, sigma, basis_func):
     potx = np.array([int_pot_1D(src, arg, current_pos, h, R, sigma, basis_func)
                     for current_pos in x]).flatten()
 
-    print 'x', x.shape
-    print 'potx', potx.shape
     pot = np.trapz(potx, x)
 
     return pot
