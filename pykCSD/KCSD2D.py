@@ -145,14 +145,12 @@ class KCSD2D(object):
 
     def estimate(self, estimation_table):
         k_inv = inv(self.k_pot + self.lambd * identity(self.k_pot.shape[0]))
-        #beta = dot(k_inv, self.sampled_pots)
         nt = self.sampled_pots.shape[1]
         (nx, ny) = self.space_X.shape
         estimation = np.zeros((nx * ny, nt))
 
         for t in xrange(nt):
             beta = dot(k_inv, self.sampled_pots[:, t])
-            #estimation[:, t] = dot(estimation_table, beta)
             for i in xrange(self.elec_pos.shape[0]):
                 estimation[:, t] += beta[i] * estimation_table[:, i]
 
