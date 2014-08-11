@@ -1,19 +1,19 @@
-# Config file for automatic testing at travis-ci.org
-
 language: python
-
 python:
-  - "2.7"
-
+- '2.7'
 virtualenv:
   system_site_packages: true
-
 before_install:
-  - sudo apt-get install build-essential python-dev python-numpy python-setuptools python-scipy libatlas-base-dev
-  - sudo pip install -U scikit-learn
-
-# command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
+- sudo apt-get install build-essential python-dev python-numpy python-setuptools python-scipy
+  libatlas-base-dev
+- sudo pip install -U scikit-learn
 install: pip install -r requirements.txt
-
-# command to run tests, e.g. python setup.py test
 script: python setup.py test
+
+deploy:
+  provider: pypi
+  user: GrzegorzParka
+  password:
+    secure: PprH25k4JgTxB1pN3m0Ozfe8lcsJFpTeNheqF+YmpyBJcz4Ibrm01UejFsPhJGMDqAhQn6k8sAVhAunoCuRYupqcedA+PEZvYPgSdaB12hpdk/b8eWLXm5xaFIMXzI4GT1XWIqyRh6tbGr2OecY63ySzis+XszzvcERd9T4yHzc=
+  on:
+    tags: true
