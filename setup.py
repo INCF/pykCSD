@@ -28,7 +28,7 @@ test_requirements = [
 setup(
     name='pykCSD',
     version='0.1.0',
-    description='',
+    description='Object oriented Python kernel current source density toolbox',
     long_description=readme + '\n\n' + history,
     author='Grzegorz Parka',
     author_email='grzegorz.parka@gmail.com',
