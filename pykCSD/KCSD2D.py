@@ -43,7 +43,7 @@ class KCSD2D(object):
             demanded thickness of the basis element
 
         'h' : float
-            cylinder radius
+            thickness of analyzed tissue slice
 
         'dist_density' : int
             resolution of the dist_table
