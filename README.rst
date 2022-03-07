@@ -2,6 +2,16 @@
 pykCSD
 ===============================
 
+NOTE: This module is currently not maintained. We recommend using 
+
+*kCSD-python* : https://github.com/Neuroinflab/kCSD-python
+
+The relevant documentation with extensive tutorials is provided there. Daniel Wójcik
+
+
+pykCSD
+------
+
 Kernel Current Source Density is a recently developed method for estimating the density of trans-membrane current sources, which can be used for a detailed study of neuronal synaptic dynamics.
 
 It can estimate current source density from potentials measured with irregularly placed linear, planar and spatial electrodes.
