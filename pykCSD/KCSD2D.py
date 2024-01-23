@@ -113,10 +113,11 @@ class KCSD2D(object):
 
         nx = (self.xmax - self.xmin)/self.gdX + 1
         ny = (self.ymax - self.ymin)/self.gdY + 1
-
-        lin_x = np.linspace(self.xmin, self.xmax, nx)
-        lin_y = np.linspace(self.ymin, self.ymax, ny)
-        self.space_X, self.space_Y = np.meshgrid(lin_x, lin_y)
+        
+#         lin_x = np.linspace(self.xmin, self.xmax, nx)
+#         lin_y = np.linspace(self.ymin, self.ymax, ny)
+#         self.space_X, self.space_Y = np.meshgrid(lin_x, lin_y)
+        self.space_X, self.space_Y = np.mgrid[self.xmin:self.xmax:np.complex(0,nx) , self.ymin:self.ymax:np.complex(0,ny)]
 
         (self.X_src, self.Y_src, self.R) = sd.make_src_2D(
             self.space_X,
